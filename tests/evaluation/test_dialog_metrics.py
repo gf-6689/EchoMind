@@ -1,3 +1,5 @@
+import pytest
+
 from evaluation.dialog_metrics import aggregate_case_scores, compute_dialog_metrics, compute_turn_scores
 
 
@@ -18,7 +20,7 @@ def test_case_scores_average_turns_before_overall():
     ]
     assert aggregate_case_scores(turns) == {
         "relevance": 0.8,
-        "accuracy": 0.6,
+        "accuracy": pytest.approx(0.6),
         "completeness": 0.4,
         "helpfulness": 0.2,
         "overall": 0.5,
@@ -46,3 +48,24 @@ def test_no_valid_judged_cases_returns_null_quality_metrics():
     result = compute_dialog_metrics([{"agent_failed": True, "judge_failed": False, "case_scores": None, "turns": []}])
     for key in ("relevance_mean", "accuracy_mean", "completeness_mean", "helpfulness_mean", "overall_mean", "pass_rate"):
         assert result[key] is None
+
+
+def test_overall_below_threshold_is_not_rounded_up_or_passed():
+    case_scores = aggregate_case_scores([{
+        "judge_failed": False,
+        "judge": {
+            "relevance": 0.75,
+            "accuracy": 0.75,
+            "completeness": 0.75,
+            "helpfulness": 0.7499999999998,
+        },
+    }])
+
+    assert case_scores["overall"] < 0.75
+    result = compute_dialog_metrics([{
+        "agent_failed": False,
+        "judge_failed": False,
+        "case_scores": case_scores,
+        "turns": [],
+    }])
+    assert result["pass_rate"] == 0.0

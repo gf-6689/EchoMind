@@ -10,7 +10,7 @@ DIMENSIONS = ("relevance", "accuracy", "completeness", "helpfulness")
 
 def compute_turn_scores(judge_scores):
     values = {name: float(judge_scores[name]) for name in DIMENSIONS}
-    values["overall"] = round(math.fsum(values.values()) / len(DIMENSIONS), 12)
+    values["overall"] = math.fsum(values.values()) / len(DIMENSIONS)
     return values
 
 
@@ -18,8 +18,8 @@ def aggregate_case_scores(turns):
     if not turns or any(t.get("agent_failed") or t.get("judge_failed") or t.get("judge_skipped") for t in turns):
         return None
     per_turn = [compute_turn_scores(t["judge"]) for t in turns]
-    result = {name: round(math.fsum(t[name] for t in per_turn) / len(per_turn), 12) for name in DIMENSIONS}
-    result["overall"] = round(math.fsum(result.values()) / len(DIMENSIONS), 12)
+    result = {name: math.fsum(t[name] for t in per_turn) / len(per_turn) for name in DIMENSIONS}
+    result["overall"] = math.fsum(result.values()) / len(DIMENSIONS)
     return result
 
 
