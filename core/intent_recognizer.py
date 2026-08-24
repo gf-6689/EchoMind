@@ -13,6 +13,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
+import pathlib
 import re
 import time
 from dataclasses import dataclass, field
@@ -24,6 +26,8 @@ from anthropic import AsyncAnthropic
 from core.llm_utils import extract_text_content
 
 logger = logging.getLogger(__name__)
+
+INTENT_MODES = ("pattern_only", "embedding_only", "llm_only", "fusion")
 
 
 class IntentCategory(Enum):
@@ -65,6 +69,7 @@ class IntentResult:
     reasoning:  str
     latency_ms: float
     source_scores: Dict[str, float] = field(default_factory=dict)
+    source_errors: Dict[str, str] = field(default_factory=dict)
 
 
 # ── Few-shot 模板（同时用于 LLM 示例和 Embedding 匹配）────────────────────────
@@ -151,6 +156,9 @@ class IntentRecognizer:
         base_url: Optional[str] = None,
         model: str = "claude-3-5-sonnet-20241022",
         confidence_threshold: float = 0.5,
+        embedding_model_name: str = "BAAI/bge-small-zh-v1.5",
+        embedding_cache_dir: Optional[str] = None,
+        embedding_encoder: Optional[Any] = None,
     ):
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
@@ -158,10 +166,14 @@ class IntentRecognizer:
         self.client    = AsyncAnthropic(**kwargs)
         self.model     = model
         self.threshold = confidence_threshold
-        # 第三方兼容 API（如 DeepSeek）通常不支持 Embedding，禁用该策略。
-        # 官方 Anthropic SDK 当前没有 embeddings 资源，因此下面会使用稳定的
-        # 本地字符 n-gram 向量作为轻量兜底，保证三路融合链路真实可跑。
-        self._embedding_enabled = not bool(base_url)
+        self.embedding_model_name = embedding_model_name
+        self.embedding_cache_dir = pathlib.Path(
+            embedding_cache_dir
+            or os.getenv("ECHOMIND_MODEL_DIR", "").strip()
+            or pathlib.Path(__file__).resolve().parents[1] / "data" / "models"
+        )
+        self._embedding_encoder = embedding_encoder
+        self._embedding_enabled = True
 
         self._tpl_embeddings: Dict[IntentCategory, List[List[float]]] = {}
         self._cache: Dict[str, IntentResult] = {}
@@ -174,13 +186,17 @@ class IntentRecognizer:
         self,
         message: str,
         history: Optional[List[Dict[str, str]]] = None,
+        mode: str = "fusion",
     ) -> IntentResult:
         """
         识别用户意图。
 
         history 格式：[{"role": "user"/"assistant", "content": "..."}]
         """
-        key = self._cache_key(message, history)
+        if mode not in INTENT_MODES:
+            raise ValueError(f"unsupported intent mode: {mode}")
+
+        key = self._cache_key(message, history, mode)
         if key in self._cache:
             self.cache_hits += 1
             return self._cache[key]
@@ -188,18 +204,36 @@ class IntentRecognizer:
 
         t0 = time.monotonic()
 
-        # LLM 和 Embedding 并行（Embedding 不可用时跳过）
-        llm_task = asyncio.create_task(self._llm_recognize(message, history))
-        emb_task = asyncio.create_task(self._embedding_recognize(message)) if self._embedding_enabled else None
-        pat      = self._pattern_recognize(message)
+        llm: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
+        emb: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
+        pat: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
 
-        if emb_task:
-            llm, emb = await asyncio.gather(llm_task, emb_task)
+        if mode == "pattern_only":
+            pat = self._pattern_recognize(message)
+            intent, confidence = self._single_source(pat)
+        elif mode == "embedding_only":
+            emb = await self._embedding_recognize(message)
+            intent, confidence = self._single_source(emb)
+        elif mode == "llm_only":
+            llm = await self._llm_recognize(message, history)
+            intent, confidence = self._single_source(llm)
         else:
-            llm = await llm_task
-            emb = {"intent": IntentCategory.OTHER, "confidence": 0.0}
+            llm_task = asyncio.create_task(self._llm_recognize(message, history))
+            emb_task = asyncio.create_task(self._embedding_recognize(message))
+            pat = self._pattern_recognize(message)
+            llm, emb = await asyncio.gather(llm_task, emb_task)
+            intent, confidence, _ = self._vote(llm, emb, pat)
 
-        intent, confidence, source_scores = self._vote(llm, emb, pat)
+        source_scores = {
+            "llm": float(llm.get("confidence", 0.0) or 0.0),
+            "embedding": float(emb.get("confidence", 0.0) or 0.0),
+            "pattern": float(pat.get("confidence", 0.0) or 0.0),
+        }
+        source_errors: Dict[str, str] = {}
+        if llm.get("failed"):
+            source_errors["llm"] = str(llm.get("error") or "LLM recognition failed")
+        if emb.get("failed"):
+            source_errors["embedding"] = str(emb.get("error") or "embedding recognition failed")
         entities = self._extract_entities(message)
         urgency  = self._urgency(message, intent)
 
@@ -212,6 +246,7 @@ class IntentRecognizer:
             reasoning=llm.get("reasoning", ""),
             latency_ms=(time.monotonic() - t0) * 1000,
             source_scores=source_scores,
+            source_errors=source_errors,
         )
 
         # LRU 缓存
@@ -268,24 +303,97 @@ class IntentRecognizer:
 可选意图: {", ".join(c.value for c in IntentCategory)}"""
         prompt = self._clean_text(prompt)
 
-        try:
-            resp = await self.client.messages.create(
-                model=self.model,
-                max_tokens=256,
-                temperature=0.1,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = extract_text_content(resp.content)
-            s, e = raw.find("{"), raw.rfind("}") + 1
-            data = json.loads(raw[s:e])
+        classification_tool = {
+            "name": "classify_intent",
+            "description": "Return the single best customer-service intent classification.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "intent": {
+                        "type": "string",
+                        "enum": [category.value for category in IntentCategory],
+                    },
+                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    "reasoning": {"type": "string"},
+                },
+                "required": ["intent", "confidence", "reasoning"],
+                "additionalProperties": False,
+            },
+        }
+
+        last_error = "unknown LLM error"
+        for attempt in range(1, 4):
             try:
-                data["intent"] = IntentCategory(data["intent"])
-            except ValueError:
-                data["intent"] = IntentCategory.OTHER
-            return data
-        except Exception as ex:
-            logger.warning(f"LLM 识别失败: {ex}")
-            return {"intent": IntentCategory.OTHER, "confidence": 0.0, "reasoning": "LLM 失败", "failed": True}
+                resp = await self.client.messages.create(
+                    model=self.model,
+                    max_tokens=512,
+                    temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}],
+                    tools=[classification_tool],
+                    tool_choice={"type": "tool", "name": "classify_intent"},
+                    extra_body={"thinking": {"type": "disabled"}},
+                    timeout=30.0,
+                )
+                data = self._extract_tool_payload(resp.content)
+                if data is None:
+                    raw = extract_text_content(resp.content)
+                    data = self._parse_json_object(raw)
+                intent_value = str(data["intent"]).strip().lower()
+                try:
+                    data["intent"] = IntentCategory(intent_value)
+                except ValueError:
+                    data["intent"] = IntentCategory.OTHER
+                data["confidence"] = max(0.0, min(1.0, float(data["confidence"])))
+                return data
+            except Exception as ex:
+                last_error = f"{type(ex).__name__}: {ex}"
+                if attempt < 3:
+                    await asyncio.sleep(0.5 * attempt)
+
+        logger.warning(f"LLM 识别失败（重试 3 次）: {last_error}")
+        return {
+            "intent": IntentCategory.OTHER,
+            "confidence": 0.0,
+            "reasoning": "LLM 失败",
+            "failed": True,
+            "error": last_error,
+        }
+
+    @staticmethod
+    def _parse_json_object(raw: str) -> Dict[str, Any]:
+        """Extract the first JSON object, including from fenced model output."""
+        if not raw or not raw.strip():
+            raise ValueError("empty text response")
+        decoder = json.JSONDecoder()
+        for start, char in enumerate(raw):
+            if char != "{":
+                continue
+            try:
+                value, _ = decoder.raw_decode(raw[start:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, dict):
+                return value
+        raise ValueError(f"response contains no valid JSON object (text_length={len(raw)})")
+
+    @staticmethod
+    def _extract_tool_payload(content: Any) -> Optional[Dict[str, Any]]:
+        """Extract classify_intent input from Anthropic-compatible tool output."""
+        for block in content or []:
+            block_type = getattr(block, "type", None)
+            block_name = getattr(block, "name", None)
+            block_input = getattr(block, "input", None)
+            if isinstance(block, dict):
+                block_type = block.get("type", block_type)
+                block_name = block.get("name", block_name)
+                block_input = block.get("input", block_input)
+            if (
+                block_type == "tool_use"
+                and block_name == "classify_intent"
+                and isinstance(block_input, dict)
+            ):
+                return dict(block_input)
+        return None
 
     async def _embedding_recognize(self, message: str) -> Dict[str, Any]:
         """策略 2：Embedding 向量相似度匹配。"""
@@ -302,7 +410,12 @@ class IntentRecognizer:
             return {"intent": best_cat, "confidence": best_score}
         except Exception as ex:
             logger.warning(f"Embedding 识别失败: {ex}")
-            return {"intent": IntentCategory.OTHER, "confidence": 0.0}
+            return {
+                "intent": IntentCategory.OTHER,
+                "confidence": 0.0,
+                "failed": True,
+                "error": f"{type(ex).__name__}: {ex}",
+            }
 
     def _pattern_recognize(self, message: str) -> Dict[str, Any]:
         """策略 3：关键词模式匹配（同步，零延迟兜底）。"""
@@ -338,6 +451,21 @@ class IntentRecognizer:
 
     # ── 投票合并 ──────────────────────────────────────────────────────────────
 
+    def _single_source(self, result: Dict[str, Any]) -> tuple[IntentCategory, float]:
+        """Apply the shared confidence threshold to one isolated branch."""
+        if result.get("failed"):
+            return IntentCategory.OTHER, 0.0
+        intent = result.get("intent", IntentCategory.OTHER)
+        confidence = float(result.get("confidence", 0.0) or 0.0)
+        if not isinstance(intent, IntentCategory):
+            try:
+                intent = IntentCategory(str(intent))
+            except ValueError:
+                intent = IntentCategory.OTHER
+        if confidence < self.threshold:
+            return IntentCategory.OTHER, confidence
+        return intent, confidence
+
     def _vote(self, llm: Dict, emb: Dict, pat: Dict) -> tuple[IntentCategory, float, Dict[str, float]]:
         """加权投票。返回最终意图、融合置信度和各路来源得分。"""
         source_scores = {
@@ -352,10 +480,7 @@ class IntentRecognizer:
                 return pat["intent"], source_scores["pattern"], source_scores
             return IntentCategory.OTHER, 0.0, source_scores
 
-        if self._embedding_enabled:
-            weights = [(llm, 0.7), (emb, 0.2), (pat, 0.1)]
-        else:
-            weights = [(llm, 0.85), (pat, 0.15)]
+        weights = [(llm, 0.7), (emb, 0.2), (pat, 0.1)]
         scores: Dict[IntentCategory, float] = {}
         for result, w in weights:
             cat  = result.get("intent", IntentCategory.OTHER)
@@ -395,7 +520,7 @@ class IntentRecognizer:
             return
 
         all_texts = [t for cat in missing for t in _TEMPLATES[cat]]
-        vecs = [await self._embed_text(text) for text in all_texts]
+        vecs = await self._encode_texts(all_texts)
         idx = 0
         for cat in missing:
             n = len(_TEMPLATES[cat])
@@ -403,22 +528,30 @@ class IntentRecognizer:
             idx += n
 
     async def _embed_text(self, text: str) -> List[float]:
-        """
-        生成文本向量。
+        return (await self._encode_texts([text]))[0]
 
-        如果未来接入的官方/兼容客户端提供 embeddings.create，会优先使用远端向量；
-        当前 Anthropic SDK 没有该资源时，退化为字符 n-gram 哈希向量。这样不会因为
-        Embedding 服务缺失导致三路融合中断。
-        """
-        embeddings = getattr(self.client, "embeddings", None)
-        if embeddings is not None:
-            try:
-                resp = await embeddings.create(model="voyage-3-lite", input=[text])
-                return list(resp.data[0].embedding)
-            except Exception as ex:
-                logger.warning(f"远端 Embedding 失败，使用本地向量兜底: {ex}")
+    async def _encode_texts(self, texts: List[str]) -> List[List[float]]:
+        encoder = self._get_embedding_encoder()
+        vectors = await asyncio.to_thread(
+            encoder.encode,
+            texts,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        if hasattr(vectors, "tolist"):
+            vectors = vectors.tolist()
+        return [list(map(float, vector)) for vector in vectors]
 
-        return self._local_embedding(text)
+    def _get_embedding_encoder(self) -> Any:
+        if self._embedding_encoder is None:
+            from sentence_transformers import SentenceTransformer
+
+            self.embedding_cache_dir.mkdir(parents=True, exist_ok=True)
+            self._embedding_encoder = SentenceTransformer(
+                self.embedding_model_name,
+                cache_folder=str(self.embedding_cache_dir),
+            )
+        return self._embedding_encoder
 
     @staticmethod
     def _local_embedding(text: str, dims: int = 256) -> List[float]:
@@ -450,8 +583,13 @@ class IntentRecognizer:
             return UrgencyLevel.MEDIUM
         return UrgencyLevel.LOW
 
-    def _cache_key(self, message: str, history: Optional[List[Dict[str, str]]] = None) -> str:
-        payload = {"message": self._clean_text(message)[:200]}
+    def _cache_key(
+        self,
+        message: str,
+        history: Optional[List[Dict[str, str]]] = None,
+        mode: str = "fusion",
+    ) -> str:
+        payload = {"message": self._clean_text(message)[:200], "mode": mode}
         if history:
             payload["history"] = [
                 {
