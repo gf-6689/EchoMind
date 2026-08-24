@@ -3,7 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from evaluation.dialog_judge import DialogJudge, validate_judge_payload
+import evaluation.dialog_judge as dialog_judge
+from evaluation.dialog_judge import DialogJudge, sanitize_error, validate_judge_payload
 
 
 def tool_response(payload):
@@ -92,3 +93,50 @@ def test_judge_redacts_configured_and_header_secrets():
     assert "abc123" not in result["judge_error"]
     assert "top-secret" not in result["judge_error"]
     assert "configured-secret" not in result["judge_error"]
+
+
+def test_sanitize_error_redacts_secret_crossing_cutoff_and_bounds_result():
+    secret = "TOPSECRETVALUE"
+    result = sanitize_error(RuntimeError("x" * 490 + secret), secrets=(secret,))
+
+    assert secret not in result
+    assert "TOPSECRETV" not in result
+    assert result.endswith("[REDACTED]")
+    assert len(result) <= 500
+
+
+def test_judge_latency_excludes_prompt_building_time(monkeypatch):
+    clock = iter([100.0, 110.0, 115.0])
+    monkeypatch.setattr("evaluation.dialog_judge.time.monotonic", lambda: next(clock))
+    client = FakeClient([tool_response({"relevance": 1.0, "accuracy": 1.0, "completeness": 1.0, "helpfulness": 1.0, "reasoning": "ok"})])
+    judge = DialogJudge(client, "judge")
+
+    def slow_prompt(*args):
+        dialog_judge.time.monotonic()
+        return "prompt"
+
+    monkeypatch.setattr(judge, "_build_prompt", slow_prompt)
+    result = judge_turn(judge)
+
+    assert result["judge"]["latency_ms"] == 5000.0
+
+
+def test_prompt_construction_failure_returns_unstarted_judge_failure():
+    client = FakeClient([])
+    result = asyncio.run(DialogJudge(client, "judge").judge_turn(
+        question="q",
+        response="a",
+        context="c",
+        reference_answer="r",
+        required_points=["p"],
+        history=[{"not_json_serializable": {"set"}}],
+    ))
+
+    assert result == {
+        "judge_failed": True,
+        "judge_error": "Object of type set is not JSON serializable",
+        "judge_skipped": False,
+        "judge_attempts": 0,
+        "judge": None,
+    }
+    assert client.messages.calls == []

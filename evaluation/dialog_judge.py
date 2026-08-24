@@ -101,11 +101,12 @@ def _extract_tool_payload(content: Iterable[object]) -> Dict[str, object]:
 
 def sanitize_error(error: Exception, secrets: Iterable[str] = ()) -> str:
     """Produce a bounded diagnostic while preventing credential disclosure."""
-    text = str(error).replace("\r", " ").replace("\n", " ")[:500]
+    text = str(error).replace("\r", " ").replace("\n", " ")
     for secret in secrets:
         if secret:
             text = text.replace(secret, "[REDACTED]")
-    return re.sub(r"(?i)(authorization:\s*bearer\s+|api[_-]?key[=:]\s*)\S+", r"\1[REDACTED]", text)
+    text = re.sub(r"(?i)(authorization:\s*bearer\s+|api[_-]?key[=:]\s*)\S+", r"\1[REDACTED]", text)
+    return text[:500]
 
 
 class DialogJudge:
@@ -153,9 +154,18 @@ class DialogJudge:
         required_points: object,
         history: object,
     ) -> Dict[str, object]:
-        started = time.monotonic()
         last_error = "unknown judge error"
-        prompt = self._build_prompt(question, response, context, reference_answer, required_points, history)
+        try:
+            prompt = self._build_prompt(question, response, context, reference_answer, required_points, history)
+        except Exception as exc:
+            return {
+                "judge_failed": True,
+                "judge_error": sanitize_error(exc, self.secrets),
+                "judge_skipped": False,
+                "judge_attempts": 0,
+                "judge": None,
+            }
+        started = time.monotonic()
         for attempt in range(1, self.max_attempts + 1):
             try:
                 api_response = await self.client.messages.create(
