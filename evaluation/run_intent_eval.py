@@ -11,7 +11,11 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .intent_metrics import INTENT_LABELS, compute_intent_metrics
+from .intent_metrics import (
+    INTENT_LABELS,
+    compute_intent_metrics,
+    compute_latency_metrics,
+)
 
 
 def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -55,14 +59,12 @@ async def generate_predictions(
                 "latency_ms": latency_ms,
                 "error": None,
                 "mode": mode,
+                "source_scores": dict(getattr(result, "source_scores", None) or {}),
+                "source_intents": dict(getattr(result, "source_intents", None) or {}),
+                "source_errors": dict(getattr(result, "source_errors", None) or {}),
             }
-            source_scores = getattr(result, "source_scores", None)
-            if source_scores:
-                prediction["source_scores"] = source_scores
-            source_errors = getattr(result, "source_errors", None)
-            if source_errors:
-                prediction["source_errors"] = source_errors
         except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
             prediction = {
                 "id": row["id"],
                 "message": row["message"],
@@ -70,8 +72,11 @@ async def generate_predictions(
                 "predicted_intent": "other",
                 "confidence": 0.0,
                 "latency_ms": (time.monotonic() - started) * 1000,
-                "error": f"{type(exc).__name__}: {exc}",
+                "error": error,
                 "mode": mode,
+                "source_scores": {},
+                "source_intents": {},
+                "source_errors": {"recognizer": error},
             }
         predictions.append(prediction)
     return predictions
@@ -92,14 +97,19 @@ async def _generate_and_close(
 
 
 def _create_recognizer(
-    api_key: Optional[str], base_url: Optional[str], model: Optional[str]
+    api_key: Optional[str],
+    base_url: Optional[str],
+    model: Optional[str],
+    mode: str = "fusion",
 ) -> Any:
     _load_environment()
     resolved_key = api_key or os.getenv("ANTHROPIC_API_KEY", "").strip()
-    if not resolved_key:
+    if not resolved_key and mode in {"llm_only", "fusion"}:
         raise RuntimeError(
             "ANTHROPIC_API_KEY is not configured; set it in .env or pass --api-key"
         )
+    if not resolved_key:
+        resolved_key = "local-mode-unused"
 
     from core.intent_recognizer import IntentRecognizer
 
@@ -133,16 +143,30 @@ def _load_environment(path: Path = Path(".env")) -> None:
 
 
 def _compute_metrics(rows: List[Dict[str, Any]]) -> Dict[str, object]:
-    required = {"gold_intent", "predicted_intent"}
+    required = {"gold_intent", "predicted_intent", "latency_ms"}
     for i, row in enumerate(rows, 1):
         missing = required - row.keys()
         if missing:
             raise ValueError(f"prediction row {i}: missing fields {sorted(missing)}")
-    return compute_intent_metrics(
+    metrics = compute_intent_metrics(
         [row["gold_intent"] for row in rows],
         [row["predicted_intent"] for row in rows],
         INTENT_LABELS,
     )
+    metrics["latency"] = compute_latency_metrics(
+        [row["latency_ms"] for row in rows]
+    )
+    return metrics
+
+
+def _prepare_output_dir(path: Path) -> None:
+    if path.exists():
+        if not path.is_dir():
+            raise FileExistsError(f"output path is not a directory: {path}")
+        if any(path.iterdir()):
+            raise FileExistsError(f"output directory is not empty: {path}")
+        return
+    path.mkdir(parents=True)
 
 
 def main() -> None:
@@ -169,6 +193,11 @@ def main() -> None:
 
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be a positive integer")
+    if args.output_dir:
+        try:
+            _prepare_output_dir(args.output_dir)
+        except FileExistsError as exc:
+            parser.error(str(exc))
 
     if args.predictions:
         rows = _load_jsonl(args.predictions)
@@ -180,14 +209,15 @@ def main() -> None:
         dataset_rows = _load_jsonl(args.intent_data)
         if args.limit is not None:
             dataset_rows = dataset_rows[:args.limit]
-        recognizer = _create_recognizer(args.api_key, args.base_url, args.model)
+        recognizer = _create_recognizer(
+            args.api_key, args.base_url, args.model, mode=args.mode
+        )
         rows = asyncio.run(_generate_and_close(dataset_rows, recognizer, mode=args.mode))
 
     metrics = _compute_metrics(rows)
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
 
     if args.output_dir:
-        args.output_dir.mkdir(parents=True, exist_ok=True)
         (args.output_dir / "intent_metrics.json").write_text(
             json.dumps(metrics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )

@@ -69,6 +69,7 @@ class IntentResult:
     reasoning:  str
     latency_ms: float
     source_scores: Dict[str, float] = field(default_factory=dict)
+    source_intents: Dict[str, str] = field(default_factory=dict)
     source_errors: Dict[str, str] = field(default_factory=dict)
 
 
@@ -174,6 +175,8 @@ class IntentRecognizer:
         )
         self._embedding_encoder = embedding_encoder
         self._embedding_enabled = True
+        self._embedding_encoder_lock = asyncio.Lock()
+        self._template_embeddings_lock = asyncio.Lock()
 
         self._tpl_embeddings: Dict[IntentCategory, List[List[float]]] = {}
         self._cache: Dict[str, IntentResult] = {}
@@ -207,6 +210,7 @@ class IntentRecognizer:
         llm: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
         emb: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
         pat: Dict[str, Any] = {"intent": IntentCategory.OTHER, "confidence": 0.0}
+        vote_source_scores: Optional[Dict[str, float]] = None
 
         if mode == "pattern_only":
             pat = self._pattern_recognize(message)
@@ -222,12 +226,20 @@ class IntentRecognizer:
             emb_task = asyncio.create_task(self._embedding_recognize(message))
             pat = self._pattern_recognize(message)
             llm, emb = await asyncio.gather(llm_task, emb_task)
-            intent, confidence, _ = self._vote(llm, emb, pat)
+            intent, confidence, vote_source_scores = self._vote(llm, emb, pat)
 
-        source_scores = {
+        source_scores = vote_source_scores or {
             "llm": float(llm.get("confidence", 0.0) or 0.0),
             "embedding": float(emb.get("confidence", 0.0) or 0.0),
             "pattern": float(pat.get("confidence", 0.0) or 0.0),
+        }
+        source_intents = {
+            name: value.value if isinstance(value, IntentCategory) else str(value)
+            for name, value in {
+                "llm": llm.get("intent", IntentCategory.OTHER),
+                "embedding": emb.get("intent", IntentCategory.OTHER),
+                "pattern": pat.get("intent", IntentCategory.OTHER),
+            }.items()
         }
         source_errors: Dict[str, str] = {}
         if llm.get("failed"):
@@ -246,6 +258,7 @@ class IntentRecognizer:
             reasoning=llm.get("reasoning", ""),
             latency_ms=(time.monotonic() - t0) * 1000,
             source_scores=source_scores,
+            source_intents=source_intents,
             source_errors=source_errors,
         )
 
@@ -474,11 +487,13 @@ class IntentRecognizer:
             "pattern": float(pat.get("confidence", 0.0) or 0.0),
         }
         if llm.get("failed"):
-            if emb.get("intent") != IntentCategory.OTHER and emb.get("confidence", 0.0) > 0:
-                return emb["intent"], source_scores["embedding"], source_scores
-            if pat.get("intent") != IntentCategory.OTHER and pat.get("confidence", 0.0) > 0:
-                return pat["intent"], source_scores["pattern"], source_scores
-            return IntentCategory.OTHER, 0.0, source_scores
+            emb_intent, emb_conf = self._single_source(emb)
+            if emb_intent != IntentCategory.OTHER:
+                return emb_intent, emb_conf, source_scores
+            pat_intent, pat_conf = self._single_source(pat)
+            if pat_intent != IntentCategory.OTHER:
+                return pat_intent, pat_conf, source_scores
+            return IntentCategory.OTHER, max(emb_conf, pat_conf), source_scores
 
         weights = [(llm, 0.7), (emb, 0.2), (pat, 0.1)]
         scores: Dict[IntentCategory, float] = {}
@@ -489,11 +504,23 @@ class IntentRecognizer:
 
         best = max(scores, key=scores.get)  # type: ignore
         best_score = scores[best]
+        llm_intent = llm.get("intent", IntentCategory.OTHER)
+        llm_conf = float(llm.get("confidence", 0.0) or 0.0)
+        emb_intent = emb.get("intent", IntentCategory.OTHER)
+        emb_conf = float(emb.get("confidence", 0.0) or 0.0)
         pat_intent = pat.get("intent", IntentCategory.OTHER)
         pat_conf = float(pat.get("confidence", 0.0) or 0.0)
-        if best in _GENERIC_INTENTS and pat_intent in _SPECIFIC_INTENTS and pat_conf >= 0.5 and best_score < 0.8:
-            source_scores["refined_by_pattern"] = pat_conf
-            return pat_intent, max(best_score, pat_conf), source_scores
+        if (
+            best in _GENERIC_INTENTS
+            and llm_intent in _GENERIC_INTENTS
+            and llm_conf < 0.8
+            and emb_intent == pat_intent
+            and pat_intent in _SPECIFIC_INTENTS
+            and emb_conf >= 0.65
+            and pat_conf >= 0.75
+        ):
+            source_scores["refined_by_consensus"] = min(emb_conf, pat_conf)
+            return pat_intent, max(best_score, emb_conf, pat_conf), source_scores
         if best_score < self.threshold:
             return IntentCategory.OTHER, best_score, source_scores
         return best, best_score, source_scores
@@ -515,23 +542,24 @@ class IntentRecognizer:
 
     async def _load_template_embeddings(self) -> None:
         """懒加载所有模板的 Embedding（只在首次调用时执行）。"""
-        missing = [cat for cat in _TEMPLATES if cat not in self._tpl_embeddings]
-        if not missing:
-            return
+        async with self._template_embeddings_lock:
+            missing = [cat for cat in _TEMPLATES if cat not in self._tpl_embeddings]
+            if not missing:
+                return
 
-        all_texts = [t for cat in missing for t in _TEMPLATES[cat]]
-        vecs = await self._encode_texts(all_texts)
-        idx = 0
-        for cat in missing:
-            n = len(_TEMPLATES[cat])
-            self._tpl_embeddings[cat] = vecs[idx: idx + n]
-            idx += n
+            all_texts = [t for cat in missing for t in _TEMPLATES[cat]]
+            vecs = await self._encode_texts(all_texts)
+            idx = 0
+            for cat in missing:
+                n = len(_TEMPLATES[cat])
+                self._tpl_embeddings[cat] = vecs[idx: idx + n]
+                idx += n
 
     async def _embed_text(self, text: str) -> List[float]:
         return (await self._encode_texts([text]))[0]
 
     async def _encode_texts(self, texts: List[str]) -> List[List[float]]:
-        encoder = self._get_embedding_encoder()
+        encoder = await self._get_embedding_encoder_async()
         vectors = await asyncio.to_thread(
             encoder.encode,
             texts,
@@ -541,6 +569,16 @@ class IntentRecognizer:
         if hasattr(vectors, "tolist"):
             vectors = vectors.tolist()
         return [list(map(float, vector)) for vector in vectors]
+
+    async def _get_embedding_encoder_async(self) -> Any:
+        if self._embedding_encoder is not None:
+            return self._embedding_encoder
+        async with self._embedding_encoder_lock:
+            if self._embedding_encoder is None:
+                self._embedding_encoder = await asyncio.to_thread(
+                    self._get_embedding_encoder
+                )
+        return self._embedding_encoder
 
     def _get_embedding_encoder(self) -> Any:
         if self._embedding_encoder is None:
@@ -552,25 +590,6 @@ class IntentRecognizer:
                 cache_folder=str(self.embedding_cache_dir),
             )
         return self._embedding_encoder
-
-    @staticmethod
-    def _local_embedding(text: str, dims: int = 256) -> List[float]:
-        """稳定的字符 n-gram 哈希向量，用于无远端 Embedding 时的语义近似匹配。"""
-        normalized = text.lower().strip()
-        vec = [0.0] * dims
-        tokens = set()
-        for n in (1, 2, 3):
-            if len(normalized) >= n:
-                tokens.update(normalized[i:i + n] for i in range(len(normalized) - n + 1))
-        if not tokens:
-            tokens.add(normalized)
-
-        for token in tokens:
-            digest = hashlib.md5(token.encode("utf-8")).digest()
-            idx = int.from_bytes(digest[:4], "big") % dims
-            sign = 1.0 if digest[4] % 2 == 0 else -1.0
-            vec[idx] += sign
-        return vec
 
     def _urgency(self, message: str, intent: IntentCategory) -> UrgencyLevel:
         msg = message.lower()

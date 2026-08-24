@@ -7,6 +7,7 @@ evaluation mode should reduce its output to ``gold`` and ``pred`` and call
 
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Sequence
 
 
@@ -16,6 +17,46 @@ INTENT_LABELS: List[str] = [
     "logistics", "refund", "invoice", "payment_issue", "account_security",
     "technical_login", "technical_crash", "human_handoff", "other",
 ]
+
+
+def compute_latency_metrics(latencies: Sequence[float]) -> Dict[str, object]:
+    """Summarize non-negative latency measurements using milliseconds."""
+    values = []
+    for value in latencies:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"latency must be a finite non-negative number: {value!r}")
+        numeric = float(value)
+        if not math.isfinite(numeric) or numeric < 0:
+            raise ValueError(f"latency must be a finite non-negative number: {value!r}")
+        values.append(numeric)
+
+    if not values:
+        return {
+            "unit": "ms",
+            "count": 0,
+            "mean_ms": 0.0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+        }
+
+    ordered = sorted(values)
+
+    def percentile(q: float) -> float:
+        position = (len(ordered) - 1) * q
+        lower = math.floor(position)
+        upper = math.ceil(position)
+        if lower == upper:
+            return ordered[lower]
+        fraction = position - lower
+        return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+
+    return {
+        "unit": "ms",
+        "count": len(ordered),
+        "mean_ms": sum(ordered) / len(ordered),
+        "p50_ms": percentile(0.50),
+        "p95_ms": percentile(0.95),
+    }
 
 
 def compute_intent_metrics(

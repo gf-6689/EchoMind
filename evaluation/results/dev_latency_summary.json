@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "dataset": "intent_dev.jsonl",
+  "dataset_size": 190,
+  "unit": "ms",
+  "percentile_method": "linear interpolation at (n - 1) * q",
+  "includes_all_rows": true,
+  "includes_cold_start": true,
+  "test_500_used": false,
+  "runs": {
+    "pattern_only": {
+      "source_run": "data/eval/runs/dev-pattern-190",
+      "accuracy": 0.30526315789473685,
+      "macro_f1": 0.3401353389191185,
+      "latency": {
+        "count": 190,
+        "mean_ms": 0.0789473684179891,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "first_ms": 0.0,
+        "max_ms": 14.9999999994179,
+        "mean_without_first_ms": 0.0793650793619996
+      }
+    },
+    "embedding_only": {
+      "source_run": "data/eval/runs/dev-bge-190",
+      "embedding_model": "BAAI/bge-small-zh-v1.5",
+      "accuracy": 0.4789473684210526,
+      "macro_f1": 0.4689676963752245,
+      "latency": {
+        "count": 190,
+        "mean_ms": 153.210526315793,
+        "p50_ms": 23.5,
+        "p95_ms": 32.0,
+        "first_ms": 24641.0000000033,
+        "max_ms": 24641.0000000033,
+        "mean_without_first_ms": 23.6455026454885
+      }
+    },
+    "llm_only": {
+      "source_run": "data/eval/runs/dev-llm-190",
+      "accuracy": 0.9368421052631579,
+      "macro_f1": 0.930702353971052,
+      "latency": {
+        "count": 190,
+        "mean_ms": 1733.3894736842,
+        "p50_ms": 1734.0,
+        "p95_ms": 2127.0499999999993,
+        "first_ms": 2233.99999999674,
+        "max_ms": 2546.99999999866,
+        "mean_without_first_ms": 1730.74074074074
+      }
+    },
+    "fusion": {
+      "source_run": "data/eval/runs/dev-fusion-bge-conservative-190",
+      "accuracy": 0.9473684210526315,
+      "macro_f1": 0.9435430681968078,
+      "latency": {
+        "count": 190,
+        "mean_ms": 2172.53157894734,
+        "p50_ms": 1813.00000000134,
+        "p95_ms": 2142.04999999885,
+        "first_ms": 72077.9999999941,
+        "max_ms": 72077.9999999941,
+        "mean_without_first_ms": 1802.66137566138
+      }
+    }
+  }
+}
