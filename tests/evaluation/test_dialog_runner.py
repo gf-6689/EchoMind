@@ -372,6 +372,18 @@ def test_parser_has_no_api_key_option():
         ])
 
 
+def test_main_rejects_api_key_argument_without_echoing_its_secret(capsys):
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "--dialog-data", "x", "--output-dir", "y", "--api-key", "env-secret",
+        ])
+
+    stderr = capsys.readouterr().err
+    assert raised.value.code == 2
+    assert "--api-key is not supported" in stderr
+    assert "env-secret" not in stderr
+
+
 def test_resolve_config_reads_key_only_from_environment(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "env-secret")
 
@@ -492,3 +504,48 @@ def test_cli_validates_entire_dataset_before_applying_limit(tmp_path, monkeypatc
         "--dialog-data", str(dataset_path), "--output-dir", str(output_dir), "--limit", "1",
     ]) == 1
     assert not output_dir.exists()
+
+
+def test_main_metadata_uses_validated_dataset_snapshot_when_source_changes(tmp_path, monkeypatch):
+    from evaluation import run_dialog_eval
+
+    dataset_path = tmp_path / "dialog.json"
+    dataset_path.write_text(json.dumps([make_named_case("case-1", ("one",))]), encoding="utf-8")
+    expected_hash = hashlib.sha256(dataset_path.read_bytes()).hexdigest()
+    output_dir = tmp_path / "run"
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "env-secret")
+
+    class MutatingOrchestrator:
+        async def run(self, request):
+            dataset_path.write_text("[]", encoding="utf-8")
+            return agent_result(1)
+
+    monkeypatch.setattr(
+        run_dialog_eval,
+        "_create_dependencies",
+        lambda config: (MutatingOrchestrator(), FakeJudge()),
+    )
+
+    assert main(["--dialog-data", str(dataset_path), "--output-dir", str(output_dir)]) == 0
+    metadata = json.loads((output_dir / "run_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["dataset_sha256"] == expected_hash
+
+
+def test_main_rejects_non_empty_output_before_constructing_dependencies(tmp_path, monkeypatch):
+    from evaluation import run_dialog_eval
+
+    dataset_path = tmp_path / "dialog.json"
+    dataset_path.write_text(json.dumps([make_named_case("case-1", ("one",))]), encoding="utf-8")
+    output_dir = tmp_path / "run"
+    output_dir.mkdir()
+    (output_dir / "existing.json").write_text("{}", encoding="utf-8")
+    constructed = []
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "env-secret")
+    monkeypatch.setattr(
+        run_dialog_eval,
+        "_create_dependencies",
+        lambda config: constructed.append(config),
+    )
+
+    assert main(["--dialog-data", str(dataset_path), "--output-dir", str(output_dir)]) == 1
+    assert constructed == []

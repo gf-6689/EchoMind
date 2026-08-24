@@ -116,9 +116,17 @@ def validate_cases(cases: object, expected_count: Optional[int] = None) -> None:
 def load_and_validate(
     path: Path, expected_count: Optional[int] = None
 ) -> List[Dict[str, object]]:
-    cases = json.loads(path.read_text(encoding="utf-8"))
-    validate_cases(cases, expected_count=expected_count)
+    cases, _ = _load_validated_dataset(path, expected_count=expected_count)
     return cases
+
+
+def _load_validated_dataset(
+    path: Path, expected_count: Optional[int] = None
+) -> tuple[List[Dict[str, object]], str]:
+    dataset_bytes = path.read_bytes()
+    cases = json.loads(dataset_bytes.decode("utf-8"))
+    validate_cases(cases, expected_count=expected_count)
+    return cases, hashlib.sha256(dataset_bytes).hexdigest()
 
 
 def build_controlled_context(context: object) -> str:
@@ -266,9 +274,19 @@ def _positive_int(raw_value: str) -> int:
     return value
 
 
+class _SafeArgumentParser(argparse.ArgumentParser):
+    """Reject forbidden credential arguments without reflecting their values."""
+
+    def parse_args(self, args: Optional[List[str]] = None, namespace: object = None) -> argparse.Namespace:
+        supplied_args = sys.argv[1:] if args is None else args
+        if any(argument == "--api-key" or argument.startswith("--api-key=") for argument in supplied_args):
+            self.error("--api-key is not supported; configure ANTHROPIC_API_KEY in environment or .env")
+        return super().parse_args(args, namespace)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the deliberately small, credential-free dialog-evaluation CLI."""
-    parser = argparse.ArgumentParser(description="Run the dialog evaluation dataset.")
+    parser = _SafeArgumentParser(description="Run the dialog evaluation dataset.")
     parser.add_argument("--dialog-data", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--limit", type=_positive_int)
@@ -345,6 +363,7 @@ def _utc_now() -> str:
 def build_metadata(
     *,
     dataset_path: Path,
+    dataset_sha256: str,
     case_count: int,
     config: Mapping[str, object],
     started_at: str,
@@ -354,7 +373,7 @@ def build_metadata(
     """Build reproducible metadata containing only the approved safe fields."""
     return {
         "dataset_path": str(dataset_path),
-        "dataset_sha256": _sha256_file(dataset_path),
+        "dataset_sha256": dataset_sha256,
         "case_count": case_count,
         "git_revision": get_git_revision(repo),
         "agent_model": config["agent_model"],
@@ -379,6 +398,7 @@ async def run_evaluation(
     judge: object,
     config: Mapping[str, object],
     dataset_path: Path,
+    dataset_sha256: Optional[str] = None,
 ) -> Dict[str, Path]:
     """Evaluate cases sequentially, flushing each JSONL record before the next case."""
     prepare_output_dir(output_dir)
@@ -390,6 +410,7 @@ async def run_evaluation(
     started_at = _utc_now()
     failed = False
     secrets = (str(config["api_key"]),)
+    evaluated_dataset_sha256 = dataset_sha256 or _sha256_file(dataset_path)
 
     try:
         with predictions_path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -415,6 +436,7 @@ async def run_evaluation(
                 metadata_path.write_text(
                     json.dumps(build_metadata(
                         dataset_path=dataset_path,
+                        dataset_sha256=evaluated_dataset_sha256,
                         case_count=len(completed),
                         config=config,
                         started_at=started_at,
@@ -433,6 +455,7 @@ async def run_evaluation(
             metadata_path.write_text(
                 json.dumps(build_metadata(
                     dataset_path=dataset_path,
+                    dataset_sha256=evaluated_dataset_sha256,
                     case_count=len(completed),
                     config=config,
                     started_at=started_at,
@@ -481,9 +504,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         _load_environment()
         config = resolve_config(args, os.environ)
-        cases = load_and_validate(args.dialog_data)
+        cases, dataset_sha256 = _load_validated_dataset(args.dialog_data)
         if args.limit is not None:
             cases = cases[:args.limit]
+        prepare_output_dir(args.output_dir)
         orchestrator, judge = _create_dependencies(config)
         asyncio.run(run_evaluation(
             cases=cases,
@@ -492,6 +516,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             judge=judge,
             config=config,
             dataset_path=args.dialog_data,
+            dataset_sha256=dataset_sha256,
         ))
         return 0
     except Exception as exc:
