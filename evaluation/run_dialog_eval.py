@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import json
+from uuid import uuid4
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Mapping, Optional
 
+from agents.agent_orchestrator import Request
+from evaluation.dialog_judge import sanitize_error
+from evaluation.dialog_metrics import aggregate_case_scores
 from .intent_metrics import INTENT_LABELS
+
+
+PASS_THRESHOLD = 0.75
 
 
 _CASE_FIELDS = {
@@ -102,3 +109,137 @@ def load_and_validate(
     cases = json.loads(path.read_text(encoding="utf-8"))
     validate_cases(cases, expected_count=expected_count)
     return cases
+
+
+def build_controlled_context(context: object) -> str:
+    """Return only the case-supplied evaluation context."""
+    return str(context)
+
+
+def _enum_value(value: object) -> object:
+    return getattr(value, "value", value)
+
+
+def routing_audit(expected: Mapping[str, object], first_turn: Mapping[str, object]) -> Dict[str, bool]:
+    return {
+        "intent_match": first_turn.get("intent") == expected.get("intent"),
+        "agent_match": first_turn.get("primary_agent") == expected.get("agent_type"),
+    }
+
+
+async def evaluate_case(
+    case: Mapping[str, object],
+    orchestrator: object,
+    judge: object,
+    user_id: str = "eval-user",
+) -> Dict[str, object]:
+    """Run and independently judge every turn in one validated dialog case."""
+    conv_id = str(uuid4())
+    history: List[Dict[str, str]] = []
+    turn_results = []
+    prior_agent_failure = False
+    for turn_index, turn in enumerate(case["turns"], 1):
+        if prior_agent_failure:
+            turn_results.append({
+                "turn_id": turn_index,
+                "user_message": turn["user_message"],
+                "agent_response": None,
+                "intent": None,
+                "primary_agent": None,
+                "supporting_agents": [],
+                "routing_reason": None,
+                "routing_confidence": None,
+                "escalated": None,
+                "agent_latency_ms": None,
+                "agent_failed": False,
+                "agent_error": "skipped after prior agent failure",
+                "judge_failed": False,
+                "judge_error": None,
+                "judge_skipped": True,
+                "judge_attempts": 0,
+                "judge": None,
+            })
+            continue
+        request = Request(
+            message=turn["user_message"],
+            user_id=user_id,
+            conv_id=conv_id,
+            context=build_controlled_context(case["context"]),
+            history=list(history[-5:]),
+        )
+        try:
+            result = await orchestrator.run(request)
+        except Exception as exc:
+            turn_results.append({
+                "turn_id": turn_index,
+                "user_message": turn["user_message"],
+                "agent_response": None,
+                "intent": None,
+                "primary_agent": None,
+                "supporting_agents": [],
+                "routing_reason": None,
+                "routing_confidence": None,
+                "escalated": None,
+                "agent_latency_ms": None,
+                "agent_failed": True,
+                "agent_error": sanitize_error(exc),
+                "judge_failed": False,
+                "judge_error": None,
+                "judge_skipped": True,
+                "judge_attempts": 0,
+                "judge": None,
+            })
+            prior_agent_failure = True
+            continue
+        primary_agent = result.primary_agent or result.agent_type
+        turn_result = {
+            "turn_id": turn_index,
+            "user_message": turn["user_message"],
+            "agent_response": result.response,
+            "intent": _enum_value(result.intent),
+            "primary_agent": _enum_value(primary_agent),
+            "supporting_agents": [_enum_value(item) for item in result.supporting_agents],
+            "routing_reason": result.routing_reason,
+            "routing_confidence": result.routing_confidence,
+            "escalated": result.escalated,
+            "agent_latency_ms": result.latency_ms,
+            "agent_failed": False,
+            "agent_error": None,
+        }
+        judge_result = dict(await judge.judge_turn(
+            question=turn["user_message"],
+            response=result.response,
+            context=request.context,
+            reference_answer=turn["reference_answer"],
+            required_points=turn["required_points"],
+            history=list(history),
+        ))
+        if judge_result.get("judge_error") is not None:
+            judge_result["judge_error"] = sanitize_error(
+                RuntimeError(str(judge_result["judge_error"]))
+            )
+        turn_result.update(judge_result)
+        turn_results.append(turn_result)
+        history.extend((
+            {"role": "user", "content": turn["user_message"]},
+            {"role": "assistant", "content": result.response},
+        ))
+
+    case_scores = aggregate_case_scores(turn_results)
+    expected_routing = dict(case["expected_routing"])
+    return {
+        "case_id": case["case_id"],
+        "category": case["category"],
+        "description": case["description"],
+        "conv_id": conv_id,
+        "expected_routing": expected_routing,
+        "turns": turn_results,
+        "agent_failed": any(turn["agent_failed"] for turn in turn_results),
+        "judge_failed": any(
+            turn["judge_failed"] for turn in turn_results if not turn["judge_skipped"]
+        ),
+        "judge_skipped": any(turn["judge_skipped"] for turn in turn_results),
+        "case_scores": case_scores,
+        "passed": case_scores["overall"] >= PASS_THRESHOLD if case_scores is not None else None,
+        "routing_audit": routing_audit(expected_routing, turn_results[0]),
+    }
