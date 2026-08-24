@@ -2,18 +2,28 @@
 
 from __future__ import annotations
 
+import argparse
+import asyncio
+import hashlib
 import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
 from uuid import uuid4
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, Iterable, List, Mapping, Optional
 
 from agents.agent_orchestrator import Request
-from evaluation.dialog_judge import sanitize_error
-from evaluation.dialog_metrics import aggregate_case_scores
+from evaluation.dialog_judge import DialogJudge, PROMPT_VERSION, sanitize_error
+from evaluation.dialog_metrics import aggregate_case_scores, compute_dialog_metrics
 from .intent_metrics import INTENT_LABELS
 
 
 PASS_THRESHOLD = 0.75
+JUDGE_TEMPERATURE = 0.0
+JUDGE_TIMEOUT_SECONDS = 30.0
+JUDGE_MAX_ATTEMPTS = 3
 
 
 _CASE_FIELDS = {
@@ -132,6 +142,7 @@ async def evaluate_case(
     orchestrator: object,
     judge: object,
     user_id: str = "eval-user",
+    secrets: Iterable[str] = (),
 ) -> Dict[str, object]:
     """Run and independently judge every turn in one validated dialog case."""
     conv_id = str(uuid4())
@@ -182,7 +193,7 @@ async def evaluate_case(
                 "escalated": None,
                 "agent_latency_ms": None,
                 "agent_failed": True,
-                "agent_error": sanitize_error(exc),
+                "agent_error": sanitize_error(exc, secrets),
                 "judge_failed": False,
                 "judge_error": None,
                 "judge_skipped": True,
@@ -216,7 +227,7 @@ async def evaluate_case(
         ))
         if judge_result.get("judge_error") is not None:
             judge_result["judge_error"] = sanitize_error(
-                RuntimeError(str(judge_result["judge_error"]))
+                RuntimeError(str(judge_result["judge_error"])), secrets
             )
         turn_result.update(judge_result)
         turn_results.append(turn_result)
@@ -243,3 +254,251 @@ async def evaluate_case(
         "passed": case_scores["overall"] >= PASS_THRESHOLD if case_scores is not None else None,
         "routing_audit": routing_audit(expected_routing, turn_results[0]),
     }
+
+
+def _positive_int(raw_value: str) -> int:
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("--limit must be a positive integer") from exc
+    if value <= 0:
+        raise argparse.ArgumentTypeError("--limit must be a positive integer")
+    return value
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the deliberately small, credential-free dialog-evaluation CLI."""
+    parser = argparse.ArgumentParser(description="Run the dialog evaluation dataset.")
+    parser.add_argument("--dialog-data", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--limit", type=_positive_int)
+    parser.add_argument("--base-url")
+    parser.add_argument("--agent-model")
+    parser.add_argument("--judge-model")
+    return parser
+
+
+def resolve_config(args: object, environ: Mapping[str, str]) -> Dict[str, object]:
+    """Resolve configuration without accepting or emitting credentials via the CLI."""
+    api_key = environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not configured")
+    base_url = getattr(args, "base_url", None) or environ.get("ANTHROPIC_BASE_URL", "").strip() or None
+    agent_model = (
+        getattr(args, "agent_model", None)
+        or environ.get("ANTHROPIC_MODEL", "").strip()
+        or "deepseek-v4-pro"
+    )
+    judge_model = (
+        getattr(args, "judge_model", None)
+        or environ.get("EVAL_JUDGE_MODEL", "").strip()
+        or agent_model
+    )
+    return {
+        "api_key": api_key,
+        "base_url": base_url,
+        "agent_model": agent_model,
+        "judge_model": judge_model,
+    }
+
+
+def prepare_output_dir(path: Path) -> None:
+    """Create a new output directory or accept an empty one, never overwrite data."""
+    if path.exists():
+        if not path.is_dir():
+            raise FileExistsError(f"output path is not a directory: {path}")
+        if any(path.iterdir()):
+            raise FileExistsError(f"output directory is not empty: {path}")
+        return
+    path.mkdir(parents=True)
+
+
+def get_git_revision(repo: Path) -> Optional[str]:
+    """Return the current worktree revision without mutating repository configuration."""
+    try:
+        completed = subprocess.run(
+            ["git", "-c", f"safe.directory={repo.resolve().as_posix()}", "rev-parse", "HEAD"],
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    except OSError:
+        return None
+    revision = completed.stdout.strip()
+    return revision or None
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def build_metadata(
+    *,
+    dataset_path: Path,
+    case_count: int,
+    config: Mapping[str, object],
+    started_at: str,
+    completed_at: str,
+    repo: Path,
+) -> Dict[str, object]:
+    """Build reproducible metadata containing only the approved safe fields."""
+    return {
+        "dataset_path": str(dataset_path),
+        "dataset_sha256": _sha256_file(dataset_path),
+        "case_count": case_count,
+        "git_revision": get_git_revision(repo),
+        "agent_model": config["agent_model"],
+        "judge_model": config["judge_model"],
+        "prompt_version": PROMPT_VERSION,
+        "temperature": JUDGE_TEMPERATURE,
+        "pass_threshold": PASS_THRESHOLD,
+        "timeout_seconds": JUDGE_TIMEOUT_SECONDS,
+        "max_attempts": JUDGE_MAX_ATTEMPTS,
+        "context_mode": "controlled_context",
+        "retrieval_evaluated": False,
+        "started_at": started_at,
+        "completed_at": completed_at,
+    }
+
+
+async def run_evaluation(
+    *,
+    cases: List[Dict[str, object]],
+    output_dir: Path,
+    orchestrator: object,
+    judge: object,
+    config: Mapping[str, object],
+    dataset_path: Path,
+) -> Dict[str, Path]:
+    """Evaluate cases sequentially, flushing each JSONL record before the next case."""
+    prepare_output_dir(output_dir)
+    predictions_path = output_dir / "dialog_predictions.jsonl"
+    metrics_path = output_dir / "dialog_metrics.json"
+    metadata_path = output_dir / "run_metadata.json"
+    paths = {"predictions": predictions_path, "metrics": metrics_path, "metadata": metadata_path}
+    completed: List[Dict[str, object]] = []
+    started_at = _utc_now()
+    failed = False
+    secrets = (str(config["api_key"]),)
+
+    try:
+        with predictions_path.open("w", encoding="utf-8", newline="\n") as handle:
+            for case in cases:
+                result = await evaluate_case(case, orchestrator, judge, secrets=secrets)
+                completed.append(result)
+                handle.write(json.dumps(result, ensure_ascii=False) + "\n")
+                handle.flush()
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        completed_at = _utc_now()
+        if failed:
+            try:
+                metrics_path.write_text(
+                    json.dumps(compute_dialog_metrics(completed), ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+            try:
+                metadata_path.write_text(
+                    json.dumps(build_metadata(
+                        dataset_path=dataset_path,
+                        case_count=len(completed),
+                        config=config,
+                        started_at=started_at,
+                        completed_at=completed_at,
+                        repo=Path(__file__).resolve().parent.parent,
+                    ), ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+        else:
+            metrics_path.write_text(
+                json.dumps(compute_dialog_metrics(completed), ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            metadata_path.write_text(
+                json.dumps(build_metadata(
+                    dataset_path=dataset_path,
+                    case_count=len(completed),
+                    config=config,
+                    started_at=started_at,
+                    completed_at=completed_at,
+                    repo=Path(__file__).resolve().parent.parent,
+                ), ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+    return paths
+
+
+def _create_dependencies(config: Mapping[str, object]) -> tuple[object, DialogJudge]:
+    """Create separate agent and judge clients from resolved configuration."""
+    from anthropic import AsyncAnthropic
+    from agents.agent_orchestrator import AgentOrchestrator
+
+    api_key = str(config["api_key"])
+    base_url = config["base_url"]
+    orchestrator = AgentOrchestrator(
+        api_key=api_key,
+        base_url=base_url,
+        model=str(config["agent_model"]),
+    )
+    client_options = {"api_key": api_key}
+    if base_url:
+        client_options["base_url"] = base_url
+    judge_client = AsyncAnthropic(**client_options)
+    return orchestrator, DialogJudge(
+        judge_client,
+        str(config["judge_model"]),
+        timeout_seconds=JUDGE_TIMEOUT_SECONDS,
+        max_attempts=JUDGE_MAX_ATTEMPTS,
+        secrets=(api_key,),
+    )
+
+
+def _load_environment() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    config: Optional[Dict[str, object]] = None
+    try:
+        _load_environment()
+        config = resolve_config(args, os.environ)
+        cases = load_and_validate(args.dialog_data)
+        if args.limit is not None:
+            cases = cases[:args.limit]
+        orchestrator, judge = _create_dependencies(config)
+        asyncio.run(run_evaluation(
+            cases=cases,
+            output_dir=args.output_dir,
+            orchestrator=orchestrator,
+            judge=judge,
+            config=config,
+            dataset_path=args.dialog_data,
+        ))
+        return 0
+    except Exception as exc:
+        secrets = (str(config["api_key"]),) if config else ()
+        print(sanitize_error(exc, secrets), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
