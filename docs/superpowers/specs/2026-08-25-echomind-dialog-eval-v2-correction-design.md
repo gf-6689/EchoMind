@@ -148,8 +148,9 @@ Judge 继续使用独立 client、固定 system rubric、受边界保护的不�
 
 - `accuracy <= 0.50`；
 - `helpfulness <= 0.50`；
-- 该 turn 不得判为通过；
 - `reasoning` 必须指出具体虚构操作。
+
+当前结果 Schema 不定义 turn-level `passed`，case-level `passed` 仍由既有算术 `overall` 和统一阈值计算。本轮不增加语义关键词否决规则；验收时必须单独审计所有触发本规则的 turn，不能只看 case-level pass rate。
 
 已有 v2 的其他规则继续保留，包括无依据的流程/原因/时限/材料要求、潜在敏感材料、上下文矛盾、严重冗长或破损格式以及多规则取最严格上限。
 
@@ -191,7 +192,7 @@ Judge 继续使用独立 client、固定 system rubric、受边界保护的不�
 
 ## 10. 独立预热与延迟门
 
-正式评测前，使用与正式运行相同的 Agent、Judge、BGE 模型和配置执行一个独立受控案例：
+正式评测前，使用与正式运行相同的 Agent、Judge、BGE 模型和配置执行一个独立受控案例。预热与正式运行必须位于同一个 Python 进程，并复用同一组 Orchestrator、Judge 和底层 client 实例；单独运行两个会退出的 CLI 进程不构成有效预热。
 
 - 结果写入 `dialog-warmup-v3`；
 - 预热结果只用于加载本地模型、建立远端连接和记录冷启动，不计入 35-case 指标；
