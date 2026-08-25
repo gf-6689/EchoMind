@@ -64,20 +64,18 @@ def test_judge_uses_immutable_system_rubric_and_ignores_embedded_commands():
     assert "tool arguments must reflect this rubric" in system
 
 
-def test_judge_v2_rubric_freezes_score_caps_and_reasoning_requirements():
-    assert dialog_judge.PROMPT_VERSION == "dialog_judge_v2"
+def test_judge_v3_rubric_distinguishes_advice_promises_and_completed_actions():
+    assert dialog_judge.PROMPT_VERSION == "dialog_judge_v3"
 
     rubric = dialog_judge.SYSTEM_RUBRIC
     required_rules = (
+        "Polite wording, natural transitions, harmless conversational phrasing, and ordinary advice do not reduce scores",
+        "Unsupported claim that the assistant can or will perform an operation such as transfer, registration, submission, escalation, contact, or refund: accuracy and helpfulness must each be <= 0.75",
+        "False claim that an action was already registered, submitted, initiated, transferred, refunded, or completed: accuracy and helpfulness must each be <= 0.50",
         "Unsupported process, cause, timeline, or material requirement: accuracy must be <= 0.75",
-        "If that unsupported content may mislead the user: helpfulness must be <= 0.85",
-        "False claim that an action was already registered, submitted, initiated, or completed: accuracy and helpfulness must each be <= 0.50",
         "Request for potentially sensitive material without contextual authorization or safety guidance: accuracy must be <= 0.75 and helpfulness must be <= 0.50",
-        "Contradiction of controlled context: accuracy must be <= 0.50; use <= 0.25 when a core fact is reversed",
-        "Severe verbosity, garbled text, or broken Markdown that materially harms readability: helpfulness must be <= 0.75",
         "When multiple rules apply to one dimension, use the strictest applicable cap",
-        "Reasoning must identify the specific unsupported claim, omitted required point, false capability, readability defect, or contradiction",
-        "Polite wording, natural transitions, and harmless conversational phrasing do not reduce scores",
+        "Reasoning must quote or identify the specific promise, completed-action claim, unsupported claim, omitted required point, readability defect, or contradiction",
     )
     for rule in required_rules:
         assert rule in rubric

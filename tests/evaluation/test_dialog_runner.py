@@ -521,7 +521,7 @@ def test_run_writes_one_case_per_jsonl_line_and_safe_metadata(tmp_path):
     }
     assert metadata["dataset_sha256"] == hashlib.sha256(dataset_path.read_bytes()).hexdigest()
     assert metadata["case_count"] == 2
-    assert metadata["prompt_version"] == "dialog_judge_v2"
+    assert metadata["prompt_version"] == "dialog_judge_v3"
     assert metadata["context_mode"] == "controlled_context"
     assert metadata["retrieval_evaluated"] is False
 
