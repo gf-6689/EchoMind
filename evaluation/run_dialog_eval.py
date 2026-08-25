@@ -236,9 +236,27 @@ async def evaluate_case(
             "routing_confidence": result.routing_confidence,
             "escalated": result.escalated,
             "agent_latency_ms": result.latency_ms,
-            "agent_failed": False,
-            "agent_error": None,
+            "agent_failed": not result.success,
+            "agent_error": (
+                None
+                if result.success
+                else sanitize_error(
+                    RuntimeError(result.error or "agent returned unsuccessful result"),
+                    secrets,
+                )
+            ),
         }
+        if not result.success:
+            turn_result.update({
+                "judge_failed": False,
+                "judge_error": None,
+                "judge_skipped": True,
+                "judge_attempts": 0,
+                "judge": None,
+            })
+            turn_results.append(turn_result)
+            prior_agent_failure = True
+            continue
         judge_result = dict(await judge.judge_turn(
             question=turn["user_message"],
             response=result.response,

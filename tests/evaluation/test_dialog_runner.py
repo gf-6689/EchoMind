@@ -59,7 +59,7 @@ def build_args(**overrides):
     return SimpleNamespace(**values)
 
 
-def agent_result(number):
+def agent_result(number, *, success=True, error=None):
     enum_value = lambda value: SimpleNamespace(value=value)
     return SimpleNamespace(
         response=f"answer {number}",
@@ -71,6 +71,8 @@ def agent_result(number):
         routing_confidence=0.9,
         escalated=False,
         latency_ms=12.0,
+        success=success,
+        error=error,
     )
 
 
@@ -248,6 +250,33 @@ def test_agent_failure_skips_judge_and_preserves_later_input_turns():
     assert output["case_scores"] is None
     assert output["passed"] is None
     assert output["routing_audit"] == {"intent_match": False, "agent_match": False}
+
+
+def test_unsuccessful_orchestrator_result_is_audited_as_agent_failure():
+    orchestrator = FakeOrchestrator([
+        agent_result(
+            1,
+            success=False,
+            error="API-key=secret-token final fallback failed",
+        )
+    ])
+    judge = FakeJudge()
+
+    output = asyncio.run(evaluate_case(make_case(["one", "two"]), orchestrator, judge))
+
+    first, second = output["turns"]
+    assert first["agent_response"] == "answer 1"
+    assert first["agent_failed"] is True
+    assert first["agent_error"] == "API-key=[REDACTED] final fallback failed"
+    assert first["judge_skipped"] is True
+    assert first["judge_attempts"] == 0
+    assert first["judge"] is None
+    assert second["agent_error"] == "skipped after prior agent failure"
+    assert judge.calls == []
+    assert output["agent_failed"] is True
+    assert output["agent_error"] == "turn 1: API-key=[REDACTED] final fallback failed"
+    assert output["case_scores"] is None
+    assert output["passed"] is None
 
 
 def test_judge_final_failure_invalidates_case_but_keeps_agent_response():
