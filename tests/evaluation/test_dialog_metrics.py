@@ -40,8 +40,37 @@ def test_global_metrics_exclude_failed_cases_from_quality_only():
     assert result["pass_rate"] == 1.0
     assert result["agent_failed_rate"] == 1 / 3
     assert result["judge_failed_rate"] == 1 / 3
-    assert result["agent_latency"]["count"] == 3
-    assert result["judge_latency"]["count"] == 2
+    assert result["agent_latency_count"] == 3
+    assert result["agent_latency_mean_ms"] == pytest.approx(70 / 3)
+    assert result["judge_latency_count"] == 2
+    assert result["judge_latency_mean_ms"] == 60.0
+
+
+def test_dialog_metrics_uses_frozen_flat_latency_schema():
+    result = compute_dialog_metrics([])
+
+    assert set(result) == {
+        "total_cases", "valid_judged_cases",
+        "relevance_mean", "accuracy_mean", "completeness_mean",
+        "helpfulness_mean", "overall_mean", "pass_rate",
+        "agent_failed_count", "agent_failed_rate",
+        "judge_failed_count", "judge_failed_rate",
+        "agent_latency_count", "agent_latency_mean_ms",
+        "agent_latency_p50_ms", "agent_latency_p95_ms",
+        "judge_latency_count", "judge_latency_mean_ms",
+        "judge_latency_p50_ms", "judge_latency_p95_ms",
+    }
+
+
+def test_no_calls_return_null_latency_statistics():
+    result = compute_dialog_metrics([])
+
+    assert result["agent_latency_count"] == 0
+    assert result["judge_latency_count"] == 0
+    for prefix in ("agent", "judge"):
+        assert result[f"{prefix}_latency_mean_ms"] is None
+        assert result[f"{prefix}_latency_p50_ms"] is None
+        assert result[f"{prefix}_latency_p95_ms"] is None
 
 
 def test_no_valid_judged_cases_returns_null_quality_metrics():

@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from uuid import uuid4
 from pathlib import Path
@@ -145,6 +146,17 @@ def routing_audit(expected: Mapping[str, object], first_turn: Mapping[str, objec
     }
 
 
+def _summarize_case_errors(
+    turns: Iterable[Mapping[str, object]], failure_key: str, error_key: str
+) -> Optional[str]:
+    summaries = [
+        f"turn {turn['turn_id']}: {turn[error_key]}"
+        for turn in turns
+        if turn.get(failure_key) and turn.get(error_key)
+    ]
+    return "; ".join(summaries) or None
+
+
 async def evaluate_case(
     case: Mapping[str, object],
     orchestrator: object,
@@ -186,9 +198,11 @@ async def evaluate_case(
             context=build_controlled_context(case["context"]),
             history=list(history[-5:]),
         )
+        agent_started = time.monotonic()
         try:
             result = await orchestrator.run(request)
         except Exception as exc:
+            agent_latency_ms = (time.monotonic() - agent_started) * 1000
             turn_results.append({
                 "turn_id": turn_index,
                 "user_message": turn["user_message"],
@@ -199,7 +213,7 @@ async def evaluate_case(
                 "routing_reason": None,
                 "routing_confidence": None,
                 "escalated": None,
-                "agent_latency_ms": None,
+                "agent_latency_ms": agent_latency_ms,
                 "agent_failed": True,
                 "agent_error": sanitize_error(exc, secrets),
                 "judge_failed": False,
@@ -246,6 +260,10 @@ async def evaluate_case(
 
     case_scores = aggregate_case_scores(turn_results)
     expected_routing = dict(case["expected_routing"])
+    agent_failed = any(turn["agent_failed"] for turn in turn_results)
+    judge_failed = any(
+        turn["judge_failed"] for turn in turn_results if not turn["judge_skipped"]
+    )
     return {
         "case_id": case["case_id"],
         "category": case["category"],
@@ -253,10 +271,10 @@ async def evaluate_case(
         "conv_id": conv_id,
         "expected_routing": expected_routing,
         "turns": turn_results,
-        "agent_failed": any(turn["agent_failed"] for turn in turn_results),
-        "judge_failed": any(
-            turn["judge_failed"] for turn in turn_results if not turn["judge_skipped"]
-        ),
+        "agent_failed": agent_failed,
+        "agent_error": _summarize_case_errors(turn_results, "agent_failed", "agent_error"),
+        "judge_failed": judge_failed,
+        "judge_error": _summarize_case_errors(turn_results, "judge_failed", "judge_error"),
         "judge_skipped": any(turn["judge_skipped"] for turn in turn_results),
         "case_scores": case_scores,
         "passed": case_scores["overall"] >= PASS_THRESHOLD if case_scores is not None else None,
@@ -381,13 +399,73 @@ def build_metadata(
         "prompt_version": PROMPT_VERSION,
         "temperature": JUDGE_TEMPERATURE,
         "pass_threshold": PASS_THRESHOLD,
-        "timeout_seconds": JUDGE_TIMEOUT_SECONDS,
+        "timeout": JUDGE_TIMEOUT_SECONDS,
         "max_attempts": JUDGE_MAX_ATTEMPTS,
         "context_mode": "controlled_context",
         "retrieval_evaluated": False,
         "started_at": started_at,
         "completed_at": completed_at,
     }
+
+
+def _atomic_write_json(path: Path, payload: Mapping[str, object]) -> None:
+    serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    temporary_path = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    try:
+        with temporary_path.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        try:
+            temporary_path.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _finalize_artifacts(
+    *,
+    completed: List[Dict[str, object]],
+    metrics_path: Path,
+    metadata_path: Path,
+    dataset_path: Path,
+    dataset_sha256: str,
+    config: Mapping[str, object],
+    started_at: str,
+    completed_at: str,
+) -> Optional[RuntimeError]:
+    errors = []
+    payloads = {}
+    builders = (
+        ("dialog_metrics.json", metrics_path, lambda: compute_dialog_metrics(completed)),
+        (
+            "run_metadata.json",
+            metadata_path,
+            lambda: build_metadata(
+                dataset_path=dataset_path,
+                dataset_sha256=dataset_sha256,
+                case_count=len(completed),
+                config=config,
+                started_at=started_at,
+                completed_at=completed_at,
+                repo=Path(__file__).resolve().parent.parent,
+            ),
+        ),
+    )
+    for name, path, builder in builders:
+        try:
+            payloads[name] = (path, builder())
+        except Exception as exc:
+            errors.append(f"{name} build failed: {exc}")
+    for name, (path, payload) in payloads.items():
+        try:
+            _atomic_write_json(path, payload)
+        except Exception as exc:
+            errors.append(f"{name} write failed: {exc}")
+    if errors:
+        return RuntimeError("artifact finalization failed: " + "; ".join(errors))
+    return None
 
 
 async def run_evaluation(
@@ -408,62 +486,51 @@ async def run_evaluation(
     paths = {"predictions": predictions_path, "metrics": metrics_path, "metadata": metadata_path}
     completed: List[Dict[str, object]] = []
     started_at = _utc_now()
-    failed = False
     secrets = (str(config["api_key"]),)
     evaluated_dataset_sha256 = dataset_sha256 or _sha256_file(dataset_path)
+    evaluation_error: Optional[BaseException] = None
 
     try:
         with predictions_path.open("w", encoding="utf-8", newline="\n") as handle:
             for case in cases:
                 result = await evaluate_case(case, orchestrator, judge, secrets=secrets)
+                serialized = json.dumps(result, ensure_ascii=False) + "\n"
+                last_good_offset = handle.tell()
+                try:
+                    handle.write(serialized)
+                    handle.flush()
+                except BaseException:
+                    try:
+                        handle.seek(last_good_offset)
+                        handle.truncate()
+                        handle.flush()
+                    except Exception:
+                        pass
+                    raise
                 completed.append(result)
-                handle.write(json.dumps(result, ensure_ascii=False) + "\n")
-                handle.flush()
-    except BaseException:
-        failed = True
-        raise
-    finally:
-        completed_at = _utc_now()
-        if failed:
-            try:
-                metrics_path.write_text(
-                    json.dumps(compute_dialog_metrics(completed), ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
-            except Exception:
-                pass
-            try:
-                metadata_path.write_text(
-                    json.dumps(build_metadata(
-                        dataset_path=dataset_path,
-                        dataset_sha256=evaluated_dataset_sha256,
-                        case_count=len(completed),
-                        config=config,
-                        started_at=started_at,
-                        completed_at=completed_at,
-                        repo=Path(__file__).resolve().parent.parent,
-                    ), ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
-            except Exception:
-                pass
-        else:
-            metrics_path.write_text(
-                json.dumps(compute_dialog_metrics(completed), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+    except BaseException as exc:
+        evaluation_error = exc
+
+    completed_at = _utc_now()
+    finalization_error = _finalize_artifacts(
+        completed=completed,
+        metrics_path=metrics_path,
+        metadata_path=metadata_path,
+        dataset_path=dataset_path,
+        dataset_sha256=evaluated_dataset_sha256,
+        config=config,
+        started_at=started_at,
+        completed_at=completed_at,
+    )
+    if evaluation_error is not None:
+        if finalization_error is not None:
+            raise BaseExceptionGroup(
+                "evaluation and artifact finalization failed",
+                [evaluation_error, finalization_error],
             )
-            metadata_path.write_text(
-                json.dumps(build_metadata(
-                    dataset_path=dataset_path,
-                    dataset_sha256=evaluated_dataset_sha256,
-                    case_count=len(completed),
-                    config=config,
-                    started_at=started_at,
-                    completed_at=completed_at,
-                    repo=Path(__file__).resolve().parent.parent,
-                ), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
+        raise evaluation_error.with_traceback(evaluation_error.__traceback__)
+    if finalization_error is not None:
+        raise finalization_error
     return paths
 
 

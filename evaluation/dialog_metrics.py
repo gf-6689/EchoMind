@@ -23,6 +23,17 @@ def aggregate_case_scores(turns):
     return result
 
 
+def _latency_fields(prefix, latencies):
+    summary = compute_latency_metrics(latencies)
+    count = summary["count"]
+    return {
+        f"{prefix}_latency_count": count,
+        f"{prefix}_latency_mean_ms": summary["mean_ms"] if count else None,
+        f"{prefix}_latency_p50_ms": summary["p50_ms"] if count else None,
+        f"{prefix}_latency_p95_ms": summary["p95_ms"] if count else None,
+    }
+
+
 def compute_dialog_metrics(cases, pass_threshold=0.75):
     total = len(cases)
     valid = [c for c in cases if not c["agent_failed"] and not c["judge_failed"] and c.get("case_scores") is not None]
@@ -37,6 +48,22 @@ def compute_dialog_metrics(cases, pass_threshold=0.75):
     for name in DIMENSIONS + ("overall",):
         result[f"{name}_mean"] = sum(c["case_scores"][name] for c in valid) / len(valid) if valid else None
     result["pass_rate"] = sum(c["case_scores"]["overall"] >= pass_threshold for c in valid) / len(valid) if valid else None
-    result["agent_latency"] = compute_latency_metrics([t["agent_latency_ms"] for c in cases for t in c["turns"] if t.get("agent_latency_ms") is not None])
-    result["judge_latency"] = compute_latency_metrics([t["judge"]["latency_ms"] for c in cases for t in c["turns"] if t.get("judge") and t["judge"].get("latency_ms") is not None])
+    result.update(_latency_fields(
+        "agent",
+        [
+            turn["agent_latency_ms"]
+            for case in cases
+            for turn in case["turns"]
+            if turn.get("agent_latency_ms") is not None
+        ],
+    ))
+    result.update(_latency_fields(
+        "judge",
+        [
+            turn["judge"]["latency_ms"]
+            for case in cases
+            for turn in case["turns"]
+            if turn.get("judge") and turn["judge"].get("latency_ms") is not None
+        ],
+    ))
     return result
