@@ -143,6 +143,8 @@ class BaseAgent:
         self.stats.total += 1
         try:
             content = await self._call_llm(req)
+            if not content.strip():
+                raise ValueError("agent returned empty response")
             ms = (time.monotonic() - t0) * 1000
             self.stats.success += 1
             self.stats.total_ms += ms

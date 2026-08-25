@@ -19,6 +19,18 @@ class ExplodingAgent(BaseAgent):
         raise RuntimeError("upstream connection failed")
 
 
+class BlankAgent(BaseAgent):
+    system_prompt = "test"
+
+    def __init__(self, agent_type, content):
+        super().__init__(object(), "model")
+        self.agent_type = agent_type
+        self._content = content
+
+    async def _call_llm(self, req):
+        return self._content
+
+
 class StaticAgent:
     def __init__(self, response):
         self.agent_type = response.agent_type
@@ -56,6 +68,44 @@ def test_base_agent_preserves_failure_error_for_audit():
 
     assert response.success is False
     assert response.error == "upstream connection failed"
+
+
+def test_base_agent_rejects_blank_response_before_recording_success():
+    for content in ("", "   ", "\n\t"):
+        agent = BlankAgent(AgentType.GENERAL, content)
+        response = asyncio.run(agent.handle(make_request()))
+
+        assert response.success is False
+        assert response.error == "agent returned empty response"
+        assert agent.stats.total == 1
+        assert agent.stats.success == 0
+
+
+def test_orchestrator_falls_back_to_general_after_blank_specialist_response():
+    orchestrator = object.__new__(AgentOrchestrator)
+    orchestrator._pool = {
+        AgentType.BILLING: [BlankAgent(AgentType.BILLING, "\n")],
+        AgentType.GENERAL: [BlankAgent(AgentType.GENERAL, "fallback answer")],
+    }
+
+    result = asyncio.run(orchestrator.run(make_request()))
+
+    assert result.response == "fallback answer"
+    assert result.success is True
+    assert result.error is None
+
+
+def test_orchestrator_reports_failure_when_specialist_and_fallback_are_blank():
+    orchestrator = object.__new__(AgentOrchestrator)
+    orchestrator._pool = {
+        AgentType.BILLING: [BlankAgent(AgentType.BILLING, "")],
+        AgentType.GENERAL: [BlankAgent(AgentType.GENERAL, " \n")],
+    }
+
+    result = asyncio.run(orchestrator.run(make_request()))
+
+    assert result.success is False
+    assert result.error == "agent returned empty response"
 
 
 def test_orchestrator_reports_success_when_general_fallback_succeeds():
