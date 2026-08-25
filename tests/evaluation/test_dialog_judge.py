@@ -12,6 +12,10 @@ def tool_response(payload):
     return SimpleNamespace(content=[SimpleNamespace(type="tool_use", name="score_dialog_response", input=payload)])
 
 
+def text_response(text):
+    return SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])
+
+
 class FakeMessages:
     def __init__(self, outcomes):
         self.outcomes = list(outcomes)
@@ -64,8 +68,8 @@ def test_judge_uses_immutable_system_rubric_and_ignores_embedded_commands():
     assert "tool arguments must reflect this rubric" in system
 
 
-def test_judge_v3_rubric_distinguishes_advice_promises_and_completed_actions():
-    assert dialog_judge.PROMPT_VERSION == "dialog_judge_v3"
+def test_judge_v4_rubric_distinguishes_advice_promises_and_completed_actions():
+    assert dialog_judge.PROMPT_VERSION == "dialog_judge_v4"
 
     rubric = dialog_judge.SYSTEM_RUBRIC
     required_rules = (
@@ -118,6 +122,85 @@ def test_judge_retries_at_most_three_total_calls_and_keeps_final_error(monkeypat
     assert result["judge_attempts"] == 3
     assert "third" in result["judge_error"]
     assert result["judge"]["latency_ms"] == 6500.0
+
+
+def test_judge_uses_strict_json_fallback_after_two_empty_tool_inputs():
+    payload = {
+        "relevance": .9,
+        "accuracy": .8,
+        "completeness": .7,
+        "helpfulness": .6,
+        "reasoning": "all required fields are present",
+    }
+    client = FakeClient([
+        tool_response({}),
+        tool_response({}),
+        text_response(json.dumps(payload)),
+    ])
+
+    result = judge_turn(DialogJudge(client, "judge", max_attempts=3))
+
+    assert result["judge_failed"] is False
+    assert result["judge_attempts"] == 3
+    assert result["judge"]["overall"] == pytest.approx(.75)
+    assert all("tools" in call and "tool_choice" in call for call in client.messages.calls[:2])
+    fallback_call = client.messages.calls[2]
+    assert "tools" not in fallback_call
+    assert "tool_choice" not in fallback_call
+    assert "Return exactly one JSON object" in fallback_call["system"]
+    assert "must call score_dialog_response" not in fallback_call["system"]
+
+
+@pytest.mark.parametrize("text, expected_error", [
+    ('```json\n{"relevance": 1}\n```', "judge JSON payload is invalid"),
+    ('{"relevance": 1} trailing text', "judge JSON payload is invalid"),
+    (
+        '{"relevance": 1, "relevance": 0, "accuracy": 1, "completeness": 1, '
+        '"helpfulness": 1, "reasoning": "duplicate"}',
+        "judge JSON payload is invalid",
+    ),
+    (
+        '{"relevance": 1, "accuracy": 1, "completeness": 1, '
+        '"helpfulness": 1, "reasoning": "extra", "unexpected": 1}',
+        "judge payload fields do not match schema",
+    ),
+])
+def test_judge_json_fallback_rejects_non_strict_payloads(text, expected_error):
+    client = FakeClient([tool_response({}), tool_response({}), text_response(text)])
+
+    result = judge_turn(DialogJudge(client, "judge", max_attempts=3))
+
+    assert result["judge_failed"] is True
+    assert result["judge_attempts"] == 3
+    assert result["judge_error"] == expected_error
+    assert "overall" not in result["judge"]
+
+
+def test_judge_does_not_fallback_after_a_nonempty_invalid_tool_payload():
+    missing_field = {
+        "relevance": .9,
+        "accuracy": .8,
+        "completeness": .7,
+        "reasoning": "helpfulness is missing",
+    }
+    valid_json = json.dumps({
+        "relevance": .9,
+        "accuracy": .8,
+        "completeness": .7,
+        "helpfulness": .6,
+        "reasoning": "valid JSON but fallback must not activate",
+    })
+    client = FakeClient([
+        tool_response(missing_field),
+        tool_response({}),
+        text_response(valid_json),
+    ])
+
+    result = judge_turn(DialogJudge(client, "judge", max_attempts=3))
+
+    assert result["judge_failed"] is True
+    assert result["judge_error"] == "judge tool payload missing"
+    assert all("tools" in call and "tool_choice" in call for call in client.messages.calls)
 
 
 @pytest.mark.parametrize("payload", [

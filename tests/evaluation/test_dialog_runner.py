@@ -517,11 +517,12 @@ def test_run_writes_one_case_per_jsonl_line_and_safe_metadata(tmp_path):
         "dataset_path", "dataset_sha256", "case_count", "git_revision",
         "agent_model", "judge_model", "prompt_version", "temperature",
         "pass_threshold", "timeout", "max_attempts", "context_mode",
-        "retrieval_evaluated", "started_at", "completed_at",
+        "judge_output_strategy", "retrieval_evaluated", "started_at", "completed_at",
     }
     assert metadata["dataset_sha256"] == hashlib.sha256(dataset_path.read_bytes()).hexdigest()
     assert metadata["case_count"] == 2
-    assert metadata["prompt_version"] == "dialog_judge_v3"
+    assert metadata["prompt_version"] == "dialog_judge_v4"
+    assert metadata["judge_output_strategy"] == "forced_tool_then_strict_json_fallback"
     assert metadata["context_mode"] == "controlled_context"
     assert metadata["retrieval_evaluated"] is False
 

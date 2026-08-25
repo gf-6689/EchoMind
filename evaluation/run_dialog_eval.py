@@ -16,7 +16,12 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional
 
 from agents.agent_orchestrator import Request
-from evaluation.dialog_judge import DialogJudge, PROMPT_VERSION, sanitize_error
+from evaluation.dialog_judge import (
+    DialogJudge,
+    JUDGE_OUTPUT_STRATEGY,
+    PROMPT_VERSION,
+    sanitize_error,
+)
 from evaluation.dialog_metrics import aggregate_case_scores, compute_dialog_metrics
 from .intent_metrics import INTENT_LABELS
 
@@ -420,6 +425,7 @@ def build_metadata(
         "timeout": JUDGE_TIMEOUT_SECONDS,
         "max_attempts": JUDGE_MAX_ATTEMPTS,
         "context_mode": "controlled_context",
+        "judge_output_strategy": JUDGE_OUTPUT_STRATEGY,
         "retrieval_evaluated": False,
         "started_at": started_at,
         "completed_at": completed_at,
