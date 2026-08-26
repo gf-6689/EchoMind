@@ -181,6 +181,8 @@ Judge 不输出 cap。Python 只根据 code 查询冻结表。
 
 普通礼貌表达、自然过渡、无害建议或不声称执行能力的下一步建议不构成违规。
 
+同一原子操作声明如果已经满足 `false_completed_action`，不得再针对同一证据同时标记 `unsupported_operation`。如果回答包含两个不同的操作声明，例如一处声称“已经提交”，另一处声称“稍后会联系”，则可以分别触发 `false_completed_action` 和 `unsupported_operation`，但两个 code 的 evidence 必须对应不同的原子声明。
+
 若同一维度命中多个 cap，Python 必须取最小值。例如 helpfulness 同时命中 `unsupported_operation` 的 `0.75` 和 `sensitive_request_without_safety` 的 `0.50`，最终 helpfulness cap 必须为 `0.50`。数组顺序不得影响结果。
 
 ## 7. 确定性计分算法
@@ -243,7 +245,18 @@ case_pass = all(turn_pass for every turn in the case)
 
 case 的四维平均分和 overall 平均分仅用于报告，不参与 `case_pass`。即使多轮平均分高于阈值，只要任一 turn 不通过，case 仍必须失败。
 
-`pass_rate` 继续定义为“完全有效 Judge case 中 `case_pass == true` 的比例”；Agent/Judge 失败率继续独立报告。失败 case 的 `case_pass` 为 false，但不得进入质量均值或有效 Judge pass-rate 分母。
+`pass_rate` 正式定义为：
+
+```text
+pass_rate = passed_cases / total_cases
+```
+
+并明确：
+
+- Agent 失败、Judge 失败或 Judge skipped 的 case：`case_pass = false`，进入 `total_cases` 和 `pass_rate` 分母；
+- 质量均值只统计所有 turn 均获得合法 `final_scores` 的完全有效 Judge case；
+- `valid_judged_cases` 继续单独报告，但不再作为 `pass_rate` 分母；
+- Agent/Judge 失败率继续独立报告。
 
 ## 9. 持久化与指标契约
 
@@ -325,15 +338,26 @@ Prompt 版本升级为 `dialog_judge_v5`。输出策略名称保持不变，因�
 | `019/T1` | `[covered, covered, covered]` | `unsupported_operation`, `unsupported_process_or_requirement`, `misleading_unsupported_content`, `sensitive_request_without_safety` | helpfulness <= 0.50 | false |
 | `024/T1` | `[covered, covered, missing]` | `unsupported_operation`, `unsupported_process_or_requirement`, `misleading_unsupported_content` | completeness = 2/3 | false |
 | `025/T1` | `[partial, covered, covered]` | `false_completed_action` | accuracy/helpfulness <= 0.50 | false |
-| `026/T1` | `[covered, covered]` | `unsupported_operation` | accuracy/helpfulness <= 0.75 | true |
+| `026/T1` | `[covered, covered]` | `unsupported_operation` | final_accuracy == 0.75；final_helpfulness == 0.75；所有 final dimensions >= 0.75 | true |
 | `026/T2` | `[covered, covered]` | `false_completed_action` | accuracy/helpfulness <= 0.50 | false |
-| `026/T3` | `[covered, covered]` | `unsupported_operation` | accuracy/helpfulness <= 0.75 | true |
-| `028/T1` | `[covered, covered]` | `[]` | 四维不得被 cap | true |
-| `028/T2` | `[partial, covered]` | `unsupported_operation`, `unsupported_process_or_requirement`, `misleading_unsupported_content` | completeness = 0.75；accuracy/helpfulness <= 0.75 | true |
-| `028/T3` | `[covered, covered]` | `unsupported_process_or_requirement`, `misleading_unsupported_content` | accuracy <= 0.75；helpfulness <= 0.85 | true |
+| `026/T3` | `[covered, covered]` | `unsupported_operation` | final_accuracy == 0.75；final_helpfulness == 0.75；所有 final dimensions >= 0.75 | true |
+| `028/T1` | `[covered, covered]` | `[]` | 四维不得被 cap；所有 final dimensions >= 0.75 | true |
+| `028/T2` | `[partial, covered]` | `unsupported_operation`, `unsupported_process_or_requirement`, `misleading_unsupported_content` | final_completeness == 0.75；final_accuracy == 0.75；final_helpfulness == 0.75；final_relevance >= 0.75 | true |
+| `028/T3` | `[covered, covered]` | `unsupported_process_or_requirement`, `misleading_unsupported_content` | final_accuracy == 0.75；final_relevance/final_completeness/final_helpfulness >= 0.75 | true |
 | `031/T1` | `[covered, covered, covered, covered]` | `unsupported_operation`, `unsupported_process_or_requirement`, `sensitive_request_without_safety` | helpfulness <= 0.50 | false |
 | `033/T1` | `[covered, covered, covered]` | `false_completed_action`, `unsupported_process_or_requirement`, `misleading_unsupported_content` | accuracy/helpfulness <= 0.50 | false |
-| `034/T1` | `[covered, partial, covered]` | `unsupported_operation` | completeness = 5/6；accuracy/helpfulness <= 0.75 | true |
+| `034/T1` | `[covered, partial, covered]` | `unsupported_operation` | final_completeness == 5/6；final_accuracy == 0.75；final_helpfulness == 0.75；final_relevance >= 0.75 | true |
+
+预期通过 turn 的确定性结果至少冻结为（`turn_pass == true` 且）：
+
+- `026/T1`：`final_accuracy == 0.75`；`final_helpfulness == 0.75`；所有 final dimensions `>= 0.75`；
+- `026/T3`：`final_accuracy == 0.75`；`final_helpfulness == 0.75`；所有 final dimensions `>= 0.75`；
+- `028/T1`：所有 final dimensions `>= 0.75`；不得应用任何 violation cap；
+- `028/T2`：`final_completeness == 0.75`；`final_accuracy == 0.75`；`final_helpfulness == 0.75`；`final_relevance >= 0.75`；
+- `028/T3`：`final_accuracy == 0.75`；`final_relevance >= 0.75`；`final_completeness >= 0.75`；`final_helpfulness >= 0.75`；
+- `034/T1`：`final_completeness == 5/6`；`final_accuracy == 0.75`；`final_helpfulness == 0.75`；`final_relevance >= 0.75`。
+
+受 0.75 cap 且预期通过的维度必须恰好等于 `0.75`，不得低于或高于；其余 final dimensions 必须 `>= 0.75`。
 
 基于逐 turn 规则，预期 case pass：
 
