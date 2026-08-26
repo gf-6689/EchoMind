@@ -81,18 +81,19 @@ E:\conda_envs\echomind\python.exe -X utf8 -c "import hashlib,json; from pathlib 
 
 预期：全部断言通过。
 
-- [ ] **Step 3：全部新路径未被占用**
+- [ ] **Step 3：全部新路径未被占用（共七项）**
 
 ```powershell
 Test-Path -LiteralPath 'data\eval\runs\run_dialog_eval_v5_final.py'
 Test-Path -LiteralPath 'tests\evaluation\test_dialog_final_driver.py'
 Test-Path -LiteralPath 'data\eval\runs\v5-final-historical-snapshot-pre-20260826.json'
-Test-Path -LiteralPath 'E:\Desktop\简历项目\echomind-dialog-v5-final-pytest-temp'
+Test-Path -LiteralPath 'E:\Desktop\简历项目\echomind-dialog-v5-preflight-pytest-temp'
+Test-Path -LiteralPath 'E:\Desktop\简历项目\echomind-dialog-v5-driver-pytest-temp'
 Test-Path -LiteralPath 'E:\Desktop\简历项目\EchoMind_data\data\eval\runs\dialog-warmup-v5-20260826'
 Test-Path -LiteralPath 'E:\Desktop\简历项目\EchoMind_data\data\eval\runs\dialog-eval-v5-final-20260826'
 ```
 
-预期：六项全部 `False`；任何一项 `True` 则停止，不删除任何东西。
+预期：七项全部 `False`；任一目录已存在都必须停止，不得删除、清空或复用。两个 pytest 临时目录运行后均保留。
 
 - [ ] **Step 4：历史目录快照（pre）**
 
@@ -117,11 +118,11 @@ Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
 Remove-Item Env:ANTHROPIC_BASE_URL -ErrorAction SilentlyContinue
 Remove-Item Env:ANTHROPIC_MODEL -ErrorAction SilentlyContinue
 Remove-Item Env:EVAL_JUDGE_MODEL -ErrorAction SilentlyContinue
-E:\conda_envs\echomind\python.exe -m pytest tests/evaluation/test_dialog_policy.py tests/evaluation/test_dialog_judge.py tests/evaluation/test_dialog_metrics.py tests/evaluation/test_dialog_runner.py tests/evaluation/test_dialog_judge_calibration.py -q -p no:cacheprovider --basetemp 'E:\Desktop\简历项目\echomind-dialog-v5-final-pytest-temp'
+E:\conda_envs\echomind\python.exe -m pytest tests/evaluation/test_dialog_policy.py tests/evaluation/test_dialog_judge.py tests/evaluation/test_dialog_metrics.py tests/evaluation/test_dialog_runner.py tests/evaluation/test_dialog_judge_calibration.py -q -p no:cacheprovider --basetemp 'E:\Desktop\简历项目\echomind-dialog-v5-preflight-pytest-temp'
 $LASTEXITCODE
 ```
 
-预期：全部通过、退出码 `0`（记录实际通过数）。`--basetemp` 指向 E 盘全新目录（Task 1 Step 3 已断言不存在）；保留该目录，不删除、不复用。任何失败 → 停止。
+预期：全部通过、退出码 `0`（记录实际通过数）。`--basetemp` 指向 E 盘全新目录 `echomind-dialog-v5-preflight-pytest-temp`（Task 1 Step 3 已断言不存在），与 Task 3 的 `echomind-dialog-v5-driver-pytest-temp` 是两个不同目录，绝不复用；两个目录运行后均保留。全程不得触碰 `.test-tmp/` 与 `.pytest_cache/`。任何失败 → 停止。
 
 - [ ] **Step 2：确认 `.test-tmp/` 未被触碰**
 
@@ -166,12 +167,12 @@ git -c safe.directory='E:/Desktop/简历项目/EchoMind所有代码+简历/EchoM
 - [ ] **Step 3：冻结与提交**
 
 ```powershell
-E:\conda_envs\echomind\python.exe -m pytest tests/evaluation/test_dialog_policy.py tests/evaluation/test_dialog_judge.py tests/evaluation/test_dialog_metrics.py tests/evaluation/test_dialog_runner.py tests/evaluation/test_dialog_judge_calibration.py tests/evaluation/test_dialog_final_driver.py -q -p no:cacheprovider --basetemp 'E:\Desktop\简历项目\echomind-dialog-v5-final-pytest-temp'
+E:\conda_envs\echomind\python.exe -m pytest tests/evaluation/test_dialog_policy.py tests/evaluation/test_dialog_judge.py tests/evaluation/test_dialog_metrics.py tests/evaluation/test_dialog_runner.py tests/evaluation/test_dialog_judge_calibration.py tests/evaluation/test_dialog_final_driver.py -q -p no:cacheprovider --basetemp 'E:\Desktop\简历项目\echomind-dialog-v5-driver-pytest-temp'
 E:\conda_envs\echomind\python.exe -m py_compile 'data\eval\runs\run_dialog_eval_v5_final.py'
 git diff --check
 ```
 
-预期：全部通过。然后：
+预期：全部通过（basetemp 为第二个全新 E 盘目录 `echomind-dialog-v5-driver-pytest-temp`，与 Task 2 目录不同，两个目录运行后均保留；全程不得触碰 `.test-tmp/` 与 `.pytest_cache/`）。然后：
 
 ```powershell
 E:\conda_envs\echomind\python.exe -X utf8 -c "import hashlib; from pathlib import Path; print(hashlib.sha256(Path('data/eval/runs/run_dialog_eval_v5_final.py').read_bytes()).hexdigest())"
@@ -188,9 +189,33 @@ git rev-parse HEAD
 - 本地 commit 驱动与测试；正式运行的 `execution_revision` = 该新 HEAD。
 - 提交信息与文件清单写入证据报告；**禁止 git push**；不提交快照文件、不提交 `.test-tmp/`。
 
+- [ ] **Step 4：冻结唯一正式执行入口**
+
+驱动 TDD、定向测试通过、`py_compile` 通过、SHA-256 冻结并本地提交之后，正式执行只有唯一一条命令：
+
+```powershell
+E:\conda_envs\echomind\python.exe -X utf8 data\eval\runs\run_dialog_eval_v5_final.py
+$formalExitCode = $LASTEXITCODE
+Write-Output "formal_driver_exit_code=$formalExitCode"
+```
+
+规则（冻结）：
+
+- 该命令在整个正式任务中只能执行一次；
+- 单次进程内依次完成预热、预热硬门和正式 35-case；
+- 整个进程只能调用一次 `_create_dependencies`；
+- 预热失败时驱动必须在正式 runner 启动前退出；
+- 非零退出码必须保留所有已生成目录和产物并立即停止；
+- 禁止自动重试整个驱动；
+- 禁止删除目录后重跑；
+- 禁止 append、resume 或覆盖；
+- Task 4 和 Task 5 是该唯一命令内部的两个阶段，不是两条独立运行命令；
+- 执行前再次确认 `dialog-warmup-v5-20260826` / `dialog-eval-v5-final-20260826` 两个目录不存在；
+- 证据报告必须记录精确命令、开始时间、结束时间、退出码和"只执行一次"声明。
+
 ---
 
-## Task 4：预热（与正式运行同进程、不同目录）
+## Task 4：预热（唯一执行命令的 Phase 1，不是独立运行命令）
 
 - 复用 v4 已验证的同进程预热模式：驱动只调用一次 `_create_dependencies`，预热与正式运行共享同一 Orchestrator / Judge / HTTP client / 模型加载状态。
 - 预热 = 仅 `dialog_eval_001`（1 case），结果写入独立预热目录；不计入正式指标；正式运行用全量 35 case 重新执行（不读取预热 predictions）。
@@ -199,7 +224,7 @@ git rev-parse HEAD
 
 ---
 
-## Task 5：正式 35-case / 43-turn
+## Task 5：正式 35-case / 43-turn（唯一执行命令的 Phase 2，不是独立运行命令）
 
 - 严格 35 cases / 43 turns，调用真实 `AgentOrchestrator` 与 Judge v5（`DialogJudge`），逐 case 顺序执行。
 - 每个 turn 持久化（生产 `evaluate_case` 落盘）：`agent_response`、`agent_latency_ms`、Judge `assessment`（base_scores / required_point_coverage / violations / reasoning_summary）、`applied_caps`、`final_scores`、`turn_pass`、Agent/Judge 失败状态。
@@ -320,7 +345,7 @@ awaiting_independent_human_review
 4. 数据集身份（路径、SHA-256、35/43）；六个新路径预检为 `False` 的证明；
 5. 驱动：接口说明、离线测试 5 个行为全绿、`py_compile`、`git diff --check`、驱动 SHA-256（冻结值）、commit hash 与提交文件清单、未 push 声明；
 6. 运行前身份记录（`formal_model_identity.json` 内容，含 driver_sha256 / git_revision / dataset_sha256 / judge_model / prompt / pass rule / strategy）；
-7. 驱动精确命令、退出码、`started_at` / `completed_at`、只执行一次的声明；
+7. 唯一执行命令原文、开始时间（`started_at`）、结束时间（`completed_at`）、退出码（`formal_driver_exit_code`）与"只执行一次"声明；
 8. 预热：case 身份、失败数、attempts、latency、与正式指标隔离声明；
 9. 正式指标：§0 口径 + 全部必须指标（含 total_turns=43、pass_rate 分母 35、routing exact match）；
 10. Python recompute 结果；routing mismatch 列表与 AMBIGUOUS 说明（gold_modified=False）；历史快照 pre/post 对比；
