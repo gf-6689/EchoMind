@@ -17,7 +17,7 @@ def compute_turn_scores(judge_scores):
 def aggregate_case_scores(turns):
     if not turns or any(t.get("agent_failed") or t.get("judge_failed") or t.get("judge_skipped") for t in turns):
         return None
-    per_turn = [compute_turn_scores(t["judge"]) for t in turns]
+    per_turn = [t["judge"]["final_scores"] for t in turns]
     result = {name: math.fsum(t[name] for t in per_turn) / len(per_turn) for name in DIMENSIONS}
     result["overall"] = math.fsum(result.values()) / len(DIMENSIONS)
     return result

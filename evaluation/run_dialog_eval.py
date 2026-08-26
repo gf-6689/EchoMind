@@ -23,10 +23,21 @@ from evaluation.dialog_judge import (
     sanitize_error,
 )
 from evaluation.dialog_metrics import aggregate_case_scores, compute_dialog_metrics
+from evaluation.dialog_policy import (
+    COMPLETENESS_POLICY_VERSION,
+    DIMENSION_PASS_FLOOR,
+    OVERALL_PASS_THRESHOLD,
+    PASS_RULE_VERSION,
+    VIOLATION_POLICY_VERSION,
+    compute_case_pass,
+    compute_turn_pass,
+    score_assessment,
+)
 from .intent_metrics import INTENT_LABELS
 
 
-PASS_THRESHOLD = 0.75
+# Kept for backward-compatible metadata; must never bypass the single-dimension floor.
+PASS_THRESHOLD = OVERALL_PASS_THRESHOLD
 JUDGE_TEMPERATURE = 0.0
 JUDGE_TIMEOUT_SECONDS = 30.0
 JUDGE_MAX_ATTEMPTS = 3
@@ -194,6 +205,7 @@ async def evaluate_case(
                 "judge_skipped": True,
                 "judge_attempts": 0,
                 "judge": None,
+                "turn_pass": False,
             })
             continue
         request = Request(
@@ -226,6 +238,7 @@ async def evaluate_case(
                 "judge_skipped": True,
                 "judge_attempts": 0,
                 "judge": None,
+                "turn_pass": False,
             })
             prior_agent_failure = True
             continue
@@ -258,6 +271,7 @@ async def evaluate_case(
                 "judge_skipped": True,
                 "judge_attempts": 0,
                 "judge": None,
+                "turn_pass": False,
             })
             turn_results.append(turn_result)
             prior_agent_failure = True
@@ -274,6 +288,24 @@ async def evaluate_case(
             judge_result["judge_error"] = sanitize_error(
                 RuntimeError(str(judge_result["judge_error"])), secrets
             )
+        turn_pass = False
+        judge_payload = judge_result.get("judge")
+        if (
+            not judge_result.get("judge_failed")
+            and not judge_result.get("judge_skipped")
+            and judge_payload is not None
+            and judge_payload.get("assessment") is not None
+        ):
+            scored = score_assessment(judge_payload["assessment"])
+            judge_payload["applied_caps"] = scored["applied_caps"]
+            judge_payload["final_scores"] = scored["final_scores"]
+            turn_pass = compute_turn_pass(
+                scored["final_scores"],
+                agent_failed=False,
+                judge_failed=False,
+                judge_skipped=False,
+            )
+        turn_result["turn_pass"] = turn_pass
         turn_result.update(judge_result)
         turn_results.append(turn_result)
         history.extend((
@@ -282,6 +314,7 @@ async def evaluate_case(
         ))
 
     case_scores = aggregate_case_scores(turn_results)
+    case_pass = compute_case_pass([turn["turn_pass"] for turn in turn_results])
     expected_routing = dict(case["expected_routing"])
     agent_failed = any(turn["agent_failed"] for turn in turn_results)
     judge_failed = any(
@@ -300,7 +333,9 @@ async def evaluate_case(
         "judge_error": _summarize_case_errors(turn_results, "judge_failed", "judge_error"),
         "judge_skipped": any(turn["judge_skipped"] for turn in turn_results),
         "case_scores": case_scores,
-        "passed": case_scores["overall"] >= PASS_THRESHOLD if case_scores is not None else None,
+        "case_pass": case_pass,
+        # Backward-compatible alias; must be strictly equal to case_pass.
+        "passed": case_pass,
         "routing_audit": routing_audit(expected_routing, turn_results[0]),
     }
 
@@ -422,6 +457,11 @@ def build_metadata(
         "prompt_version": PROMPT_VERSION,
         "temperature": JUDGE_TEMPERATURE,
         "pass_threshold": PASS_THRESHOLD,
+        "pass_rule_version": PASS_RULE_VERSION,
+        "dimension_pass_floor": DIMENSION_PASS_FLOOR,
+        "overall_pass_threshold": OVERALL_PASS_THRESHOLD,
+        "completeness_policy": COMPLETENESS_POLICY_VERSION,
+        "violation_policy_version": VIOLATION_POLICY_VERSION,
         "timeout": JUDGE_TIMEOUT_SECONDS,
         "max_attempts": JUDGE_MAX_ATTEMPTS,
         "context_mode": "controlled_context",

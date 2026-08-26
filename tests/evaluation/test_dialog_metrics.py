@@ -15,8 +15,8 @@ def test_turn_overall_is_unweighted_arithmetic_mean():
 
 def test_case_scores_average_turns_before_overall():
     turns = [
-        {"judge_failed": False, "judge": {"relevance": 1.0, "accuracy": 0.8, "completeness": 0.6, "helpfulness": 0.4}},
-        {"judge_failed": False, "judge": {"relevance": 0.6, "accuracy": 0.4, "completeness": 0.2, "helpfulness": 0.0}},
+        {"judge_failed": False, "judge": {"final_scores": {"relevance": 1.0, "accuracy": 0.8, "completeness": 0.6, "helpfulness": 0.4, "overall": 0.7}}},
+        {"judge_failed": False, "judge": {"final_scores": {"relevance": 0.6, "accuracy": 0.4, "completeness": 0.2, "helpfulness": 0.0, "overall": 0.3}}},
     ]
     assert aggregate_case_scores(turns) == {
         "relevance": 0.8,
@@ -83,10 +83,13 @@ def test_overall_below_threshold_is_not_rounded_up_or_passed():
     case_scores = aggregate_case_scores([{
         "judge_failed": False,
         "judge": {
-            "relevance": 0.75,
-            "accuracy": 0.75,
-            "completeness": 0.75,
-            "helpfulness": 0.7499999999998,
+            "final_scores": {
+                "relevance": 0.75,
+                "accuracy": 0.75,
+                "completeness": 0.75,
+                "helpfulness": 0.7499999999998,
+                "overall": 0.75,
+            },
         },
     }])
 
