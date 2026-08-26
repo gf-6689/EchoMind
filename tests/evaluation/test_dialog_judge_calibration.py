@@ -451,6 +451,9 @@ def test_main_returns_nonzero_on_failed_calibration_and_zero_on_success(tmp_path
     from evaluation import run_dialog_judge_calibration as module
 
     dataset_path, predictions_path, metadata_path = write_inputs(tmp_path)
+    # Never load the real .env inside the test process; it would leak
+    # environment variables into other tests in the same session.
+    monkeypatch.setattr(module, "_load_environment", lambda: None)
 
     def fake_create_judge(judge_model):
         return ExactMissJudge(), ()
