@@ -34,9 +34,23 @@ def _latency_fields(prefix, latencies):
     }
 
 
-def compute_dialog_metrics(cases, pass_threshold=0.75):
+def compute_dialog_metrics(cases):
+    """Aggregate final scores only; pass rate uses every case as its denominator.
+
+    Fully valid cases are those where every turn produced legal final scores:
+    no agent failure, no judge failure, no skipped judge and a case-level
+    aggregated ``case_scores``.  Only those cases enter the quality means.
+    ``passed_cases`` counts cases whose ``case_pass`` is true; failed cases
+    still enter ``total_cases`` and therefore the pass-rate denominator.
+    """
     total = len(cases)
-    valid = [c for c in cases if not c["agent_failed"] and not c["judge_failed"] and c.get("case_scores") is not None]
+    valid = [
+        c for c in cases
+        if not c["agent_failed"]
+        and not c["judge_failed"]
+        and not c.get("judge_skipped")
+        and c.get("case_scores") is not None
+    ]
     result = {
         "total_cases": total,
         "valid_judged_cases": len(valid),
@@ -47,7 +61,9 @@ def compute_dialog_metrics(cases, pass_threshold=0.75):
     result["judge_failed_rate"] = result["judge_failed_count"] / total if total else 0.0
     for name in DIMENSIONS + ("overall",):
         result[f"{name}_mean"] = sum(c["case_scores"][name] for c in valid) / len(valid) if valid else None
-    result["pass_rate"] = sum(c["case_scores"]["overall"] >= pass_threshold for c in valid) / len(valid) if valid else None
+    passed_cases = sum(bool(c.get("case_pass")) for c in cases)
+    result["passed_cases"] = passed_cases
+    result["pass_rate"] = passed_cases / total if total else None
     result.update(_latency_fields(
         "agent",
         [
