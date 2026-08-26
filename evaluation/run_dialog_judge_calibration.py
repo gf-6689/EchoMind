@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from evaluation.dialog_calibration_policy import classify_turn_result
 from evaluation.dialog_judge import (
     JUDGE_OUTPUT_STRATEGY,
     PROMPT_VERSION,
@@ -232,48 +233,6 @@ def check_reasoning_conflict(
     return False
 
 
-def _check_turn_oracle(
-    case_id: str,
-    turn_index: int,
-    assessment: Mapping[str, object],
-    final_scores: Mapping[str, float],
-    applied_caps: Mapping[str, float],
-    turn_pass: bool,
-) -> List[str]:
-    oracle = TURN_ORACLE[(case_id, turn_index)]
-    failures = []
-    actual_statuses = [entry["status"] for entry in assessment["required_point_coverage"]]
-    if actual_statuses != oracle["coverage"]:
-        failures.append(f"coverage mismatch: {actual_statuses} != {oracle['coverage']}")
-    actual_codes = [violation["code"] for violation in assessment["violations"]]
-    required = oracle.get("required_violations", [])
-    missing = sorted(set(required) - set(actual_codes))
-    if missing:
-        failures.append(f"missing required violations: {missing}")
-    extra = sorted(code for code in actual_codes if code not in required)
-    if extra:
-        failures.append(f"unexpected extra violations: {extra}")
-    for name, expected in oracle.get("final_exact", {}).items():
-        if final_scores[name] != expected:
-            failures.append(f"final_{name} {final_scores[name]!r} != {expected!r}")
-    for name, ceiling in oracle.get("final_at_most", {}).items():
-        if final_scores[name] > ceiling:
-            failures.append(f"final_{name} {final_scores[name]!r} > {ceiling!r}")
-    for name, floor in oracle.get("final_at_least", {}).items():
-        if final_scores[name] < floor:
-            failures.append(f"final_{name} {final_scores[name]!r} < {floor!r}")
-    floor = oracle.get("all_dimensions_at_least")
-    if floor is not None:
-        for name in ("relevance", "accuracy", "completeness", "helpfulness"):
-            if final_scores[name] < floor:
-                failures.append(f"final_{name} {final_scores[name]!r} below floor {floor!r}")
-    if oracle.get("no_caps") and applied_caps:
-        failures.append(f"no caps expected but applied_caps={applied_caps!r}")
-    if turn_pass != oracle["turn_pass"]:
-        failures.append(f"turn_pass {turn_pass!r} != {oracle['turn_pass']!r}")
-    return failures
-
-
 def _verify_python_recompute(
     assessment: Mapping[str, object],
     applied_caps: Mapping[str, float],
@@ -410,10 +369,16 @@ async def run_calibration(
 
     completed_cases: List[Dict[str, object]] = []
     failures: List[str] = []
+    soft_oracle_warnings: List[str] = []
     judge_api_calls = 0
     judge_failed_count = 0
-    oracle_failed_turns = 0
+    valid_payload_turns = 0
+    hard_oracle_failed_turns = 0
+    score_critical_mismatch = 0
+    python_recompute_mismatch = 0
     manual_review_failed_turns = 0
+    turn_pass_matches = 0
+    turn_pass_match = True
     case_pass_map: Dict[str, bool] = {}
     case_pass_match = True
     unexpected_error: Optional[str] = None
@@ -438,8 +403,10 @@ async def run_calibration(
                 assessment = None
                 applied_caps = None
                 final_scores = None
-                oracle_failures: List[str] = []
+                hard_failures: List[str] = []
+                soft_warnings: List[str] = []
                 reasoning_conflict = False
+                oracle = TURN_ORACLE[(case_id, turn_index)]
                 if judge_result.get("judge_failed"):
                     judge_failed_count += 1
                     error = judge_result.get("judge_error")
@@ -447,15 +414,16 @@ async def run_calibration(
                         judge_result["judge_error"] = sanitize_error(
                             RuntimeError(str(error))
                         )
-                    oracle_failures.append(
+                    hard_failures.append(
                         f"judge failed: {judge_result.get('judge_error')}"
                     )
                 else:
                     judge_payload = judge_result.get("judge") or {}
                     assessment = judge_payload.get("assessment")
                     if assessment is None:
-                        oracle_failures.append("judge returned no assessment")
+                        hard_failures.append("judge returned no assessment")
                     else:
+                        valid_payload_turns += 1
                         scored = score_assessment(assessment)
                         applied_caps = scored["applied_caps"]
                         final_scores = scored["final_scores"]
@@ -465,26 +433,42 @@ async def run_calibration(
                             judge_failed=False,
                             judge_skipped=False,
                         )
-                        oracle_failures.extend(_check_turn_oracle(
-                            case_id,
-                            turn_index,
-                            assessment,
-                            final_scores,
-                            applied_caps,
-                            turn_pass,
-                        ))
-                        oracle_failures.extend(_verify_python_recompute(
+                        recompute_failures = _verify_python_recompute(
                             assessment, applied_caps, final_scores
-                        ))
+                        )
+                        python_recompute_mismatch += len(recompute_failures)
+                        verdict = classify_turn_result(
+                            case_id=case_id,
+                            turn_index=turn_index,
+                            oracle=oracle,
+                            assessment=assessment,
+                            final_scores=final_scores,
+                            applied_caps=applied_caps,
+                            recompute_failures=recompute_failures,
+                        )
+                        hard_failures.extend(verdict["hard_failures"])
+                        soft_warnings.extend(verdict["soft_warnings"])
+                        if verdict["score_critical"]:
+                            score_critical_mismatch += 1
                         reasoning_conflict = check_reasoning_conflict(
                             assessment["reasoning_summary"],
                             assessment["violations"],
                             [entry["status"] for entry in assessment["required_point_coverage"]],
                         )
-                if oracle_failures:
-                    oracle_failed_turns += 1
+                if turn_pass != oracle["turn_pass"]:
+                    hard_failures.append(
+                        f"turn_pass {turn_pass!r} != {oracle['turn_pass']!r}"
+                    )
+                else:
+                    turn_pass_matches += 1
+                if hard_failures:
+                    hard_oracle_failed_turns += 1
                     failures.extend(
-                        f"{case_id}/T{turn_index}: {message}" for message in oracle_failures
+                        f"{case_id}/T{turn_index}: {message}" for message in hard_failures
+                    )
+                if soft_warnings:
+                    soft_oracle_warnings.extend(
+                        f"{case_id}/T{turn_index}: {message}" for message in soft_warnings
                     )
                 if reasoning_conflict:
                     manual_review_failed_turns += 1
@@ -500,9 +484,10 @@ async def run_calibration(
                     "applied_caps": applied_caps,
                     "final_scores": final_scores,
                     "turn_pass": turn_pass,
-                    "oracle": TURN_ORACLE[(case_id, turn_index)],
-                    "oracle_failures": oracle_failures,
-                    "oracle_match": not oracle_failures,
+                    "oracle": oracle,
+                    "hard_oracle_failures": hard_failures,
+                    "soft_oracle_warnings": soft_warnings,
+                    "hard_oracle_pass": not hard_failures,
                     "reasoning_conflict": reasoning_conflict,
                 })
                 history.extend((
@@ -524,8 +509,8 @@ async def run_calibration(
                 "case_pass": case_pass,
                 "case_pass_expected": expected_case_pass,
                 "case_pass_match": matched,
-                "oracle_match": matched and all(
-                    turn["oracle_match"] and not turn["reasoning_conflict"]
+                "hard_oracle_pass": matched and all(
+                    turn["hard_oracle_pass"] and not turn["reasoning_conflict"]
                     for turn in turn_results
                 ),
             })
@@ -534,22 +519,34 @@ async def run_calibration(
         failures.append(f"calibration aborted: {unexpected_error}")
 
     completed_at = _utc_now()
+    total_turns = sum(len(case["turns"]) for case in selected)
+    if turn_pass_matches != total_turns:
+        turn_pass_match = False
     calibration_passed = (
         judge_failed_count == 0
-        and oracle_failed_turns == 0
+        and valid_payload_turns == total_turns
+        and python_recompute_mismatch == 0
+        and hard_oracle_failed_turns == 0
         and manual_review_failed_turns == 0
+        and turn_pass_match
         and case_pass_match
         and unexpected_error is None
     )
     summary = {
         "calibration_passed": calibration_passed,
         "case_count": len(case_pass_map),
-        "turn_count": sum(len(case["turns"]) for case in completed_cases) if completed_cases else 14,
+        "turn_count": total_turns,
         "agent_api_calls": 0,
         "judge_api_calls": judge_api_calls,
         "judge_failed_count": judge_failed_count,
-        "oracle_failed_turns": oracle_failed_turns,
+        "valid_payload_turns": valid_payload_turns,
+        "hard_oracle_failed_turns": hard_oracle_failed_turns,
+        "soft_oracle_warnings": soft_oracle_warnings,
+        "soft_oracle_warning_count": len(soft_oracle_warnings),
+        "score_critical_mismatch": score_critical_mismatch,
+        "python_recompute_mismatch": python_recompute_mismatch,
         "manual_review_failed_turns": manual_review_failed_turns,
+        "turn_pass_match": turn_pass_match,
         "case_pass": case_pass_map,
         "case_pass_match": case_pass_match,
         "failures": failures,

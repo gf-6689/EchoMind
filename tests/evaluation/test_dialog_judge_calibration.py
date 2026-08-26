@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from evaluation.dialog_calibration_policy import classify_turn_result
+from evaluation.dialog_policy import score_assessment
 from evaluation.run_dialog_judge_calibration import (
     CALIBRATION_CASE_IDS,
     EXPECTED_CASE_PASS,
@@ -176,7 +178,12 @@ def test_offline_calibration_passes_with_oracle_fake_judge(tmp_path):
     assert summary["agent_api_calls"] == 0
     assert summary["judge_api_calls"] == 14
     assert summary["judge_failed_count"] == 0
-    assert summary["oracle_failed_turns"] == 0
+    assert summary["hard_oracle_failed_turns"] == 0
+    assert summary["soft_oracle_warning_count"] == 0
+    assert summary["score_critical_mismatch"] == 0
+    assert summary["python_recompute_mismatch"] == 0
+    assert summary["valid_payload_turns"] == 14
+    assert summary["turn_pass_match"] is True
     assert summary["manual_review_failed_turns"] == 0
     assert summary["case_pass"] == EXPECTED_CASE_PASS
     assert summary["case_pass_match"] is True
@@ -190,7 +197,7 @@ def test_offline_calibration_passes_with_oracle_fake_judge(tmp_path):
         for line in (output_dir / "calibration_results.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert [row["case_id"] for row in rows] == CALIBRATION_CASE_IDS
-    assert all(row["oracle_match"] for row in rows)
+    assert all(row["hard_oracle_pass"] for row in rows)
 
     metadata = json.loads((output_dir / "run_metadata.json").read_text(encoding="utf-8"))
     assert metadata["judge_model"] == "deepseek-v4-pro"
@@ -321,12 +328,17 @@ class ExtraViolationJudge(OracleFakeJudge):
         }
 
 
-def test_extra_violation_fails_closed(tmp_path):
+def test_extra_violation_is_soft_unless_it_drifts_scores_or_flips_pass(tmp_path):
     summary, output_dir = run_offline(tmp_path, ExtraViolationJudge())
 
+    # context_contradiction on every turn: harmless on turns without score
+    # references (soft warning), but score-critical on turns whose frozen
+    # oracle pins accuracy to 0.75 (drift 0.25 > 0.10 -> hard).
     assert summary["calibration_passed"] is False
-    assert summary["oracle_failed_turns"] == 14
-    assert "unexpected extra violations" in summary["failures"][0]
+    assert summary["soft_oracle_warning_count"] > 0
+    assert any("unexpected extra violation" in w for w in summary["soft_oracle_warnings"])
+    assert summary["score_critical_mismatch"] > 0
+    assert summary["hard_oracle_failed_turns"] == 6  # 026/T1, 026/T3, 028/T1, 028/T2, 028/T3, 034
     assert (output_dir / "calibration_summary.json").exists()
 
 
@@ -348,9 +360,12 @@ class ExactMissJudge(OracleFakeJudge):
 def test_final_exact_mismatch_fails_calibration(tmp_path):
     summary, output_dir = run_offline(tmp_path, ExactMissJudge())
 
+    # 026/T1 final accuracy 0.7 vs exact 0.75: drift 0.05 is a soft warning,
+    # but the resulting turn_pass False != True is always a hard failure.
     assert summary["calibration_passed"] is False
-    assert summary["oracle_failed_turns"] >= 1
-    assert any("final_accuracy" in failure for failure in summary["failures"])
+    assert summary["hard_oracle_failed_turns"] == 1
+    assert summary["soft_oracle_warning_count"] == 1
+    assert any("turn_pass" in failure for failure in summary["failures"])
     assert output_dir.exists()
 
 
@@ -378,6 +393,7 @@ def test_case_pass_mismatch_fails_calibration(tmp_path):
     assert summary["calibration_passed"] is False
     assert summary["case_pass"]["dialog_eval_028"] is False
     assert summary["case_pass_match"] is False
+    assert summary["hard_oracle_failed_turns"] >= 1
 
 
 class ConflictReasoningJudge(OracleFakeJudge):
@@ -424,7 +440,8 @@ def test_python_recompute_verification_catches_drift(tmp_path, monkeypatch):
     summary, _ = run_offline(tmp_path, OracleFakeJudge())
 
     assert summary["calibration_passed"] is False
-    assert any("recompute" in failure or "final_scores" in failure for failure in summary["failures"])
+    assert summary["python_recompute_mismatch"] == 14
+    assert any("recompute" in failure for failure in summary["failures"])
 
 
 class FailingJudge:
@@ -442,7 +459,8 @@ def test_judge_failure_is_recorded_and_fails_calibration(tmp_path):
     summary, output_dir = run_offline(tmp_path, FailingJudge())
 
     assert summary["judge_failed_count"] == 14
-    assert summary["oracle_failed_turns"] == 14
+    assert summary["hard_oracle_failed_turns"] == 14
+    assert summary["valid_payload_turns"] == 0
     assert summary["calibration_passed"] is False
     assert all("secret" not in failure for failure in summary["failures"])
 
@@ -507,6 +525,246 @@ def test_metadata_hashes_match_source_files(tmp_path):
     assert predictions_sha == hashlib.sha256(predictions_path.read_bytes()).hexdigest()
 
 
+class SoftMisleadingJudge(OracleFakeJudge):
+    """Omits the auxiliary misleading_unsupported_content on 018/T1 only."""
+
+    async def judge_turn(self, **kwargs):
+        self.calls.append(kwargs)
+        assessment = self._assessment(len(self.calls))
+        if len(self.calls) == 2:  # 018/T1
+            assessment["violations"] = [
+                v for v in assessment["violations"]
+                if v["code"] != "misleading_unsupported_content"
+            ]
+        return {
+            "judge_failed": False,
+            "judge_error": None,
+            "judge_skipped": False,
+            "judge_attempts": 1,
+            "judge": {"assessment": assessment, "latency_ms": 1.0},
+        }
+
+
+def test_missing_soft_auxiliary_violation_is_warning_not_hard_failure(tmp_path):
+    summary, output_dir = run_offline(tmp_path, SoftMisleadingJudge())
+
+    assert summary["calibration_passed"] is True
+    assert summary["hard_oracle_failed_turns"] == 0
+    assert summary["soft_oracle_warning_count"] == 1
+    assert summary["score_critical_mismatch"] == 0
+    assert any("misleading_unsupported_content" in w for w in summary["soft_oracle_warnings"])
+    rows = [
+        json.loads(line)
+        for line in (output_dir / "calibration_results.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert all(row["hard_oracle_pass"] for row in rows)
+
+
+class MissingSensitiveJudge(OracleFakeJudge):
+    """Omits the pass-critical sensitive_request_without_safety on 018/T1."""
+
+    async def judge_turn(self, **kwargs):
+        self.calls.append(kwargs)
+        assessment = self._assessment(len(self.calls))
+        if len(self.calls) == 2:  # 018/T1
+            assessment["violations"] = [
+                v for v in assessment["violations"]
+                if v["code"] != "sensitive_request_without_safety"
+            ]
+        return {
+            "judge_failed": False,
+            "judge_error": None,
+            "judge_skipped": False,
+            "judge_attempts": 1,
+            "judge": {"assessment": assessment, "latency_ms": 1.0},
+        }
+
+
+def test_missing_pass_critical_violation_is_hard_failure(tmp_path):
+    summary, _ = run_offline(tmp_path, MissingSensitiveJudge())
+
+    assert summary["calibration_passed"] is False
+    assert summary["hard_oracle_failed_turns"] == 1
+    assert any("pass-critical" in failure for failure in summary["failures"])
+    assert any("turn_pass" in failure for failure in summary["failures"])
+
+
+def _policy_assessment(codes, statuses=("covered", "covered"), base=None):
+    return {
+        "base_scores": base or {"relevance": 1.0, "accuracy": 1.0, "helpfulness": 1.0},
+        "required_point_coverage": [
+            {"point_index": index + 1, "status": status, "evidence": "e"}
+            for index, status in enumerate(statuses)
+        ],
+        "violations": [{"code": code, "evidence": ["e"]} for code in codes],
+        "reasoning_summary": "facts",
+    }
+
+
+def _policy_scored(codes, statuses=("covered", "covered"), base=None):
+    return score_assessment(_policy_assessment(codes, statuses, base))
+
+
+def test_classify_missing_soft_auxiliary_violation_is_warning():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": ["unsupported_operation", "misleading_unsupported_content"],
+        "final_exact": {"accuracy": 0.75, "helpfulness": 0.75},
+        "all_dimensions_at_least": 0.75,
+        "turn_pass": True,
+    }
+    scored = _policy_scored(["unsupported_operation"])
+    verdict = classify_turn_result(
+        case_id="dialog_eval_026",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(["unsupported_operation"]),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert verdict["hard_failures"] == []
+    assert verdict["score_critical"] is False
+    assert any("auxiliary" in w for w in verdict["soft_warnings"])
+
+
+def test_classify_score_drift_above_threshold_is_hard():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": ["unsupported_operation"],
+        "final_exact": {"accuracy": 0.75, "helpfulness": 0.75},
+        "all_dimensions_at_least": 0.75,
+        "turn_pass": True,
+    }
+    scored = _policy_scored(["context_contradiction"])
+    verdict = classify_turn_result(
+        case_id="dialog_eval_026",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(["context_contradiction"]),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert verdict["score_critical"] is True
+    assert any("drift" in failure for failure in verdict["hard_failures"])
+    assert any("unexpected extra violation" in w for w in verdict["soft_warnings"])
+
+
+def test_classify_small_exact_drift_is_soft():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": ["unsupported_operation"],
+        "final_exact": {"accuracy": 0.75, "helpfulness": 0.75},
+        "all_dimensions_at_least": 0.75,
+        "turn_pass": True,
+    }
+    assessment = _policy_assessment(["unsupported_operation"], base={"relevance": 1.0, "accuracy": 0.7, "helpfulness": 1.0})
+    scored = score_assessment(assessment)
+    verdict = classify_turn_result(
+        case_id="dialog_eval_026",
+        turn_index=1,
+        oracle=oracle,
+        assessment=assessment,
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert verdict["hard_failures"] == []
+    assert verdict["score_critical"] is False
+    assert any("accuracy" in w for w in verdict["soft_warnings"])
+
+
+def test_classify_mutual_exclusion_is_always_hard():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": ["unsupported_operation"],
+        "turn_pass": False,
+    }
+    scored = _policy_scored(["unsupported_operation", "false_completed_action"])
+    verdict = classify_turn_result(
+        case_id="dialog_eval_033",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(["unsupported_operation", "false_completed_action"]),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert any("mutual exclusion" in failure for failure in verdict["hard_failures"])
+
+
+def test_classify_no_caps_violation_is_hard():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": [],
+        "no_caps": True,
+        "all_dimensions_at_least": 0.75,
+        "turn_pass": True,
+    }
+    scored = _policy_scored(["unsupported_operation"])
+    verdict = classify_turn_result(
+        case_id="dialog_eval_028",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(["unsupported_operation"]),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert any("no caps expected" in failure for failure in verdict["hard_failures"])
+
+
+def test_classify_hard_coverage_mismatch_and_completeness_drift_are_hard():
+    oracle = {
+        "coverage": ["covered", "covered", "missing"],
+        "required_violations": [
+            "unsupported_operation",
+            "unsupported_process_or_requirement",
+        ],
+        "final_exact": {"completeness": 2 / 3},
+        "turn_pass": False,
+    }
+    scored = _policy_scored(
+        ["unsupported_operation", "unsupported_process_or_requirement"],
+        statuses=("covered", "covered", "partial"),
+    )
+    verdict = classify_turn_result(
+        case_id="dialog_eval_024",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(
+            ["unsupported_operation", "unsupported_process_or_requirement"],
+            statuses=("covered", "covered", "partial"),
+        ),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=[],
+    )
+    assert any("coverage mismatch" in failure for failure in verdict["hard_failures"])
+    assert verdict["score_critical"] is True  # completeness 0.8333 vs 0.6667
+
+
+def test_classify_recompute_failure_is_always_hard():
+    oracle = {
+        "coverage": ["covered", "covered"],
+        "required_violations": ["unsupported_operation"],
+        "final_exact": {"accuracy": 0.75, "helpfulness": 0.75},
+        "turn_pass": True,
+    }
+    scored = _policy_scored(["unsupported_operation"])
+    verdict = classify_turn_result(
+        case_id="dialog_eval_026",
+        turn_index=1,
+        oracle=oracle,
+        assessment=_policy_assessment(["unsupported_operation"]),
+        final_scores=scored["final_scores"],
+        applied_caps=scored["applied_caps"],
+        recompute_failures=["python recompute mismatch: final_scores"],
+    )
+    assert verdict["hard_failures"] == ["python recompute mismatch: final_scores"]
+
+
 def test_results_jsonl_records_full_v5_layers(tmp_path):
     _, output_dir = run_offline(tmp_path, OracleFakeJudge())
 
@@ -518,9 +776,12 @@ def test_results_jsonl_records_full_v5_layers(tmp_path):
     assert set(turn) == {
         "turn_id", "judge_attempts", "judge_failed", "judge_error",
         "assessment", "applied_caps", "final_scores", "turn_pass",
-        "oracle", "oracle_failures", "oracle_match", "reasoning_conflict",
+        "oracle", "hard_oracle_failures", "soft_oracle_warnings",
+        "hard_oracle_pass", "reasoning_conflict",
     }
     assert set(turn["assessment"]) == {"base_scores", "required_point_coverage", "violations", "reasoning_summary"}
     assert "final_scores" not in turn["assessment"]
     assert turn["final_scores"]["completeness"] == 0.5
     assert turn["turn_pass"] is False
+    assert turn["hard_oracle_pass"] is True
+    assert turn["soft_oracle_warnings"] == []
