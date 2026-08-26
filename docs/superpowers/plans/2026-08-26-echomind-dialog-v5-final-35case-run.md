@@ -45,10 +45,8 @@
 
 ```text
 .test-tmp/（多个 task6-* 子目录；git 可能对其中若干目录报 Permission denied 警告）
-.pytest_cache/
 docs/superpowers/diagnostics/2026-08-26-echomind-judge-v5-calibration-failure-analysis.md
 docs/superpowers/plans/2026-08-26-echomind-judge-v5-deterministic-policy-implementation.md
-docs/superpowers/plans/2026-08-26-echomind-dialog-v5-final-35case-run.md（本计划）
 ```
 
 `.test-tmp/` 与 `.pytest_cache/` **不得读取、修改、删除、stage**；其 Permission denied 警告直接忽略，绝不尝试进入或修复权限。预检只要求 tracked 树与索引洁净（`git diff --quiet` / `git diff --cached --quiet` 退出码 0），未跟踪项逐项列出但不触碰。
@@ -71,7 +69,7 @@ git -c safe.directory='E:/Desktop/简历项目/EchoMind所有代码+简历/EchoM
 git -c safe.directory='E:/Desktop/简历项目/EchoMind所有代码+简历/EchoMind/.worktrees/task6-dialog-eval' status --short
 ```
 
-预期：分支 `task6-dialog-eval`；tracked 树与索引洁净；`status --short` 输出与 §0.2 已知集合核对（允许存在其他未跟踪项，逐项记录，不触碰 `.test-tmp/`）。记录 HEAD 为本次 `execution_revision`。
+预期：分支 `task6-dialog-eval`；tracked 树与索引洁净；`status --short` 输出与 §0.2 已知集合核对（允许存在其他未跟踪项，逐项记录，不触碰 `.test-tmp/`）。记录此时 HEAD 为 `pre_driver_revision`；正式运行的 `execution_revision` 必须是 Task 3 驱动与测试提交后的新 HEAD。
 
 - [ ] **Step 2：冻结常量、项目 `.env` 与数据身份（不打印任何密钥值）**
 
@@ -342,7 +340,7 @@ awaiting_independent_human_review
 1. branch、`execution_revision`（driver 提交后的新 HEAD）、tracked 洁净状态（运行前后）；运行前实际 `git status --short` 输出；
 2. Python 版本；定向 6 个测试文件（5 个评测测试 + 驱动离线测试）通过数与退出码；完整套件全绿历史证据引用；
 3. `.env` 来源确认（只声明键存在，绝不输出值）；模型 / Prompt / pass rule / strategy / temperature / thinking / max_attempts；
-4. 数据集身份（路径、SHA-256、35/43）；六个新路径预检为 `False` 的证明；
+4. 数据集身份（路径、SHA-256、35/43）；七个新路径预检为 `False` 的证明；
 5. 驱动：接口说明、离线测试 5 个行为全绿、`py_compile`、`git diff --check`、驱动 SHA-256（冻结值）、commit hash 与提交文件清单、未 push 声明；
 6. 运行前身份记录（`formal_model_identity.json` 内容，含 driver_sha256 / git_revision / dataset_sha256 / judge_model / prompt / pass rule / strategy）；
 7. 唯一执行命令原文、开始时间（`started_at`）、结束时间（`completed_at`）、退出码（`formal_driver_exit_code`）与"只执行一次"声明；
