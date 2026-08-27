@@ -72,6 +72,7 @@ class AgentResponse:
     confidence:  float = 1.0
     latency_ms:  float = 0.0
     escalate:    bool  = False   # 是否需要升级
+    error:       Optional[str] = None
 
 
 @dataclass
@@ -102,6 +103,8 @@ class OrchestratorResult:
     supporting_agents: List[AgentType] = field(default_factory=list)
     routing_reason: str = ""
     routing_confidence: float = 0.0
+    success: bool = True
+    error: Optional[str] = None
 
 
 @dataclass
@@ -140,6 +143,8 @@ class BaseAgent:
         self.stats.total += 1
         try:
             content = await self._call_llm(req)
+            if not content.strip():
+                raise ValueError("agent returned empty response")
             ms = (time.monotonic() - t0) * 1000
             self.stats.success += 1
             self.stats.total_ms += ms
@@ -160,6 +165,7 @@ class BaseAgent:
                 content="抱歉，处理您的请求时出现问题，请稍后重试。",
                 success=False,
                 latency_ms=ms,
+                error=str(ex),
             )
 
     async def _call_llm(self, req: Request) -> str:
@@ -349,6 +355,8 @@ class AgentOrchestrator:
             supporting_agents=[],
             routing_reason=decision.reason,
             routing_confidence=decision.confidence,
+            success=response.success,
+            error=None if response.success else response.error or "agent execution failed",
         )
 
     async def run_parallel(self, req: Request, decision: RoutingDecision) -> OrchestratorResult:
@@ -369,6 +377,13 @@ class AgentOrchestrator:
                 parts.append(f"[{r.agent_type.value} - {role}]\n{r.content}")
 
         combined = "\n\n".join(parts) if parts else "抱歉，所有 Agent 均处理失败。"
+        success = bool(parts)
+        errors = [
+            r.error
+            for r in responses
+            if isinstance(r, AgentResponse) and not r.success and r.error
+        ]
+        errors.extend(str(r) for r in responses if isinstance(r, Exception))
         escalated = any(isinstance(r, AgentResponse) and r.escalate for r in responses)
 
         return OrchestratorResult(
@@ -386,6 +401,8 @@ class AgentOrchestrator:
             supporting_agents=decision.supporting_agents,
             routing_reason=decision.reason,
             routing_confidence=decision.confidence,
+            success=success,
+            error=None if success else "; ".join(errors) or "all agents failed",
         )
 
     # ── 路由逻辑 ──────────────────────────────────────────────────────────────

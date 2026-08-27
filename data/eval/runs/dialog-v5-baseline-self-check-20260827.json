@@ -1,0 +1,78 @@
+{
+  "schema_version": "dialog_regression_report_v1",
+  "baseline_path": "data\\eval\\baseline.json",
+  "baseline_sha256": "646de6e35aa898e60d653b3179f937627b28a31aef37de7609b9eedb6e2c44f3",
+  "current_execution_revision": "127ac799af2c16e3632580b846f153f4c1de382d",
+  "current_predictions_sha256": "157dac323cf59b24ee88fc4bc89322b5c184755c5b558d0a9e51af94af1d993c",
+  "current_metrics_sha256": "7384c6c4335e2988569384e6472c68a085af3f4a0f8e40cc0f7838b5efc51995",
+  "comparison_valid": true,
+  "identity_checks": [
+    {
+      "field": "dataset_sha256",
+      "baseline": "cb895c1fc4d95a4c1a9b821d9c56beb7755abd614aa5ef1eada1125c12ee51b2",
+      "current": "cb895c1fc4d95a4c1a9b821d9c56beb7755abd614aa5ef1eada1125c12ee51b2",
+      "match": true
+    },
+    {
+      "field": "judge_model",
+      "baseline": "deepseek-v4-pro",
+      "current": "deepseek-v4-pro",
+      "match": true
+    },
+    {
+      "field": "prompt_version",
+      "baseline": "dialog_judge_v5",
+      "current": "dialog_judge_v5",
+      "match": true
+    },
+    {
+      "field": "pass_rule_version",
+      "baseline": "dialog_pass_v5",
+      "current": "dialog_pass_v5",
+      "match": true
+    }
+  ],
+  "metric_comparisons": [
+    {
+      "metric": "machine_overall_mean",
+      "baseline": 0.9232142857142858,
+      "current": 0.9232142857142858,
+      "relative_delta": 0.0,
+      "threshold": -0.05,
+      "regression": false
+    },
+    {
+      "metric": "machine_pass_rate",
+      "baseline": 0.6857142857142857,
+      "current": 0.6857142857142857,
+      "relative_delta": 0.0,
+      "threshold": -0.05,
+      "regression": false
+    }
+  ],
+  "failure_gates": [
+    {
+      "gate": "agent_failed_rate",
+      "baseline": 0.0,
+      "current": 0.0,
+      "rule": "current > 0 => regression",
+      "regression": false
+    },
+    {
+      "gate": "judge_failed_rate",
+      "baseline": 0.0,
+      "current": 0.0,
+      "rule": "current > 0 => regression",
+      "regression": false
+    }
+  ],
+  "regressions": [],
+  "regression_detected": false,
+  "adjudicated_pass_rate_report_only": {
+    "value": 0.6285714285714286,
+    "usage": "report_only",
+    "included_in_automatic_regression": false,
+    "reviewed_cases": 27,
+    "inherited_cases": 8
+  }
+}

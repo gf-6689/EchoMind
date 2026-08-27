@@ -1,0 +1,23 @@
+{
+  "schema_version": "dialog_regression_baseline_v1",
+  "baseline_kind": "dialog_machine_monitoring",
+  "created_at": "2026-08-27T10:41:06.468948Z",
+  "execution_revision": "127ac799af2c16e3632580b846f153f4c1de382d",
+  "dataset_sha256": "cb895c1fc4d95a4c1a9b821d9c56beb7755abd614aa5ef1eada1125c12ee51b2",
+  "predictions_sha256": "157dac323cf59b24ee88fc4bc89322b5c184755c5b558d0a9e51af94af1d993c",
+  "metrics_sha256": "7384c6c4335e2988569384e6472c68a085af3f4a0f8e40cc0f7838b5efc51995",
+  "judge_model": "deepseek-v4-pro",
+  "prompt_version": "dialog_judge_v5",
+  "pass_rule_version": "dialog_pass_v5",
+  "machine_overall_mean": 0.9232142857142858,
+  "machine_pass_rate": 0.6857142857142857,
+  "agent_failed_rate": 0.0,
+  "judge_failed_rate": 0.0,
+  "adjudicated_pass_rate": {
+    "value": 0.6285714285714286,
+    "usage": "report_only",
+    "included_in_automatic_regression": false,
+    "reviewed_cases": 27,
+    "inherited_cases": 8
+  }
+}
