@@ -12,7 +12,6 @@ venv/
 .env
 .env.*
 !.env.example
-!.env.example.env
 
 # 数据目录
 data/
