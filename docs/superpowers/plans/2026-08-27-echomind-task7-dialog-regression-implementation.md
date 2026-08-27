@@ -18,7 +18,7 @@
 
 ## Tech Stack
 
-- Python 3（`E:\conda_envs\echomind\python.exe`），仅标准库：`argparse`、`datetime`、`hashlib`、`json`、`pathlib`、`sys`、`typing`。
+- Python 3（`E:\conda_envs\echomind\python.exe`），仅标准库：`argparse`、`datetime`、`decimal`、`hashlib`、`json`、`pathlib`、`sys`、`typing`。
 - 不新增任何依赖；不引入 anthropic / dotenv / requests / httpx / urllib / socket / subprocess。
 
 ## Spec 精确路径
@@ -202,14 +202,22 @@ baseline 与 report 中均不得出现 `intent_accuracy`、`intent_macro_f1`。
 
 ## 回归规则
 
-只自动比较 `machine_overall_mean`、`machine_pass_rate`，使用未舍入值：
+只自动比较 `machine_overall_mean`、`machine_pass_rate`，判定使用标准库 `decimal.Decimal` 精确十进制比较（禁止用二进制 float 直接决定边界）：
 
 ```text
-relative_delta = (current - baseline) / baseline
-regression = relative_delta < -0.05
+baseline_decimal = Decimal(str(baseline))
+current_decimal = Decimal(str(current))
+relative_delta_decimal = (
+    current_decimal - baseline_decimal
+) / baseline_decimal
+
+regression = relative_delta_decimal < Decimal("-0.05")
 ```
 
-实现直接写 `relative_delta < -0.05`，不四舍五入、不加 epsilon；边界测试用 `baseline=1.0, current=0.95`（浮点结果略大于 -0.05，不告警）验证 `== -0.05` 边界语义。
+- 从已经解析出的数值构造 Decimal 必须使用 `Decimal(str(value))`；禁止使用 `Decimal(value)`（二进制 float 直接转 Decimal 会保留表示误差，例如 `(0.95 - 1.0) / 1.0` 在 float 下是 -0.050000000000000044，会被 `< -0.05` 误判为告警）；
+- report 中的 `relative_delta` 仍保存为普通 JSON number，使用 `float(relative_delta_decimal)`；
+- `regression` 布尔值必须根据 Decimal 比较结果生成，不能根据转换回 float 后的值生成；
+- 数学语义：相对下降严格超过 5% 才告警；数学意义上恰好下降 5% 不告警；不使用四舍五入后的展示值；不使用含义不明确的任意 epsilon。
 
 failure 硬门（不走相对公式）：
 
@@ -288,7 +296,10 @@ E:\conda_envs\echomind\python.exe -m pytest -p no:cacheprovider --basetemp "E:\D
 - [ ] RED：
   - `test_overall_mean_drop_over_5_percent_is_regression`（baseline 1.0 / current 0.94 → 该项 `regression==true`，`regression_detected==true`）；
   - `test_pass_rate_drop_over_5_percent_is_regression`（baseline 0.8 / current 0.75 → 告警）；
-  - `test_exactly_5_percent_drop_is_not_regression`（baseline 1.0 / current 0.95 → `relative_delta >= -0.05`，不告警）；
+  - `test_threshold_boundary_uses_decimal_exact_judgment`（`@pytest.mark.parametrize` 三个边界案例）：
+    - baseline=1.0、current=0.95 → report 中 `relative_delta == -0.05`（精确相等）、`regression == false`；
+    - baseline=1.0、current=0.949999 → `relative_delta < -0.05`、`regression == true`；
+    - baseline=1.0、current=0.950001 → `relative_delta > -0.05`、`regression == false`；
   - `test_current_agent_failure_rate_positive_is_regression`、`test_current_judge_failure_rate_positive_is_regression`（current 0.02 → `failure_gates` 对应项 `regression==true`）；
   - `test_dataset_sha_mismatch_fails_closed_with_invalid_report`（current metadata dataset_sha256 不同 → `comparison_valid==false`、`regressions==[]`、`identity_checks` 记录 `match==false`）；
   - `test_judge_model_mismatch_fails_closed`、`test_prompt_version_mismatch_fails_closed`、`test_pass_rule_version_mismatch_fails_closed`（三个身份字段逐一验证）；
@@ -333,7 +344,7 @@ E:\conda_envs\echomind\python.exe -m pytest -p no:cacheprovider --basetemp "E:\D
 | 2 | baseline 目标已存在立即失败且原文件哈希不变 | `test_create_baseline_fails_when_output_exists_and_preserves_file` |
 | 3 | overall 相对下降超过 5% 告警 | `test_overall_mean_drop_over_5_percent_is_regression` |
 | 4 | pass rate 相对下降超过 5% 告警 | `test_pass_rate_drop_over_5_percent_is_regression` |
-| 5 | 恰好下降 5% 不告警 | `test_exactly_5_percent_drop_is_not_regression` |
+| 5 | 恰好下降 5% 不告警（Decimal 精确判定） | `test_threshold_boundary_uses_decimal_exact_judgment` |
 | 6 | current Agent failure rate >0 告警 | `test_current_agent_failure_rate_positive_is_regression` |
 | 7 | current Judge failure rate >0 告警 | `test_current_judge_failure_rate_positive_is_regression` |
 | 8 | dataset SHA 不匹配时 comparison_valid=false | `test_dataset_sha_mismatch_fails_closed_with_invalid_report` |

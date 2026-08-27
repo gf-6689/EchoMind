@@ -53,7 +53,8 @@ data/eval/baseline.json
 - 不读取 `.env`；
 - 不调用网络；
 - 不修改输入产物；
-- baseline 创建与 regression 比较职责分离。
+- baseline 创建与 regression 比较职责分离；
+- 回归阈值判定使用标准库 `decimal.Decimal` 精确十进制比较（规则见 §6）。
 
 ## 3. CLI
 
@@ -158,18 +159,25 @@ machine_overall_mean
 machine_pass_rate
 ```
 
-公式：
+公式与判定（使用标准库 `decimal.Decimal` 精确十进制判定）：
 
 ```text
-relative_delta = (current - baseline) / baseline
-relative_delta < -0.05 => regression
+baseline_decimal = Decimal(str(baseline))
+current_decimal = Decimal(str(current))
+relative_delta_decimal = (
+    current_decimal - baseline_decimal
+) / baseline_decimal
+
+regression = relative_delta_decimal < Decimal("-0.05")
 ```
 
-边界：
+实现规则：
 
-```text
-relative_delta == -0.05 => 不告警
-```
+- 从已经解析出的数值构造 Decimal 时必须使用 `Decimal(str(value))`；禁止使用 `Decimal(value)`（二进制 float 直接转 Decimal 会保留 float 的表示误差）；
+- 数学语义冻结：相对下降严格超过 5% 才告警；数学意义上恰好下降 5% 不告警；不使用四舍五入后的展示值进行判断；不使用含义不明确的任意 epsilon；
+- report 中的 `relative_delta` 仍保存为普通 JSON number，可使用 `float(relative_delta_decimal)`；
+- `regression` 布尔值必须根据 Decimal 比较结果生成，不能根据转换回 float 后的值生成；
+- 边界语义示例：baseline=1.0、current=0.95 时 relative_delta 恰为 -0.05，不告警；current=0.949999 时低于 -0.05，告警；current=0.950001 时高于 -0.05，不告警。
 
 不得把 adjudicated pass rate 纳入自动 regression。
 
@@ -266,7 +274,7 @@ regression
 2. baseline 目标已存在立即失败且原文件哈希不变；
 3. overall 相对下降超过 5% 告警；
 4. pass rate 相对下降超过 5% 告警；
-5. 恰好下降 5% 不告警；
+5. 恰好下降 5% 不告警（按 §6 的 Decimal 精确判定）；
 6. current Agent failure rate >0 告警；
 7. current Judge failure rate >0 告警；
 8. dataset SHA 不匹配时 comparison_valid=false；
