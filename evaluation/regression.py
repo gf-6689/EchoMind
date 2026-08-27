@@ -7,8 +7,10 @@ legacy baseline logic in evaluation/evaluator.py.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -445,8 +447,69 @@ def compare_against_baseline(
     }
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="python -m evaluation.regression",
+        description="Deterministic dialog baseline creation and regression comparison.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    create = subparsers.add_parser(
+        "create-baseline", help="build a monitoring baseline from formal artifacts"
+    )
+    create.add_argument("--metrics", type=Path, required=True)
+    create.add_argument("--metadata", type=Path, required=True)
+    create.add_argument("--predictions", type=Path, required=True)
+    create.add_argument("--adjudication", type=Path, required=True)
+    create.add_argument("--output", type=Path, required=True)
+    create.add_argument("--created-at")
+
+    compare = subparsers.add_parser(
+        "compare", help="compare current artifacts against a frozen baseline"
+    )
+    compare.add_argument("--baseline", type=Path, required=True)
+    compare.add_argument("--metrics", type=Path, required=True)
+    compare.add_argument("--metadata", type=Path, required=True)
+    compare.add_argument("--predictions", type=Path, required=True)
+    compare.add_argument("--output", type=Path, required=True)
+    return parser
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    return 0
+    """Dispatch the CLI subcommands with exit codes 0/1/2."""
+    args = _build_parser().parse_args(argv)
+    try:
+        if args.command == "create-baseline":
+            create_baseline(
+                metrics_path=args.metrics,
+                metadata_path=args.metadata,
+                predictions_path=args.predictions,
+                adjudication_path=args.adjudication,
+                output_path=args.output,
+                created_at=args.created_at,
+            )
+            return 0
+        if args.command == "compare":
+            report = compare_against_baseline(
+                baseline_path=args.baseline,
+                metrics_path=args.metrics,
+                metadata_path=args.metadata,
+                predictions_path=args.predictions,
+            )
+            write_json_new(args.output, report)
+            if not report["comparison_valid"]:
+                return 2
+            return 1 if report["regression_detected"] else 0
+        raise RegressionInputError(f"unknown command: {args.command}")  # pragma: no cover
+    except (
+        RegressionInputError,
+        FileExistsError,
+        FileNotFoundError,
+        json.JSONDecodeError,
+        OSError,
+    ) as exc:
+        print(f"evaluation.regression: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

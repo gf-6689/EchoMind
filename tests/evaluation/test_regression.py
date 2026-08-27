@@ -9,6 +9,7 @@ import hashlib
 import inspect
 import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -551,3 +552,137 @@ def test_no_intent_fields_in_baseline_or_report(tmp_path):
     for name in ("intent_accuracy", "intent_macro_f1"):
         assert name not in baseline_payload
         assert name not in report
+
+
+def _write_cli_create_args(tmp_path):
+    paths = _write_fake_artifacts(tmp_path)
+    output = tmp_path / "baseline.json"
+    argv = [
+        "create-baseline",
+        "--metrics", str(paths["metrics"]),
+        "--metadata", str(paths["metadata"]),
+        "--predictions", str(paths["predictions"]),
+        "--adjudication", str(paths["adjudication"]),
+        "--output", str(output),
+        "--created-at", "2026-08-27T00:00:00Z",
+    ]
+    return paths, argv, output
+
+
+def _write_cli_compare_args(
+    tmp_path,
+    *,
+    current_overall_mean=0.9232142857142858,
+    current_dataset_sha256=DEFAULT_DATASET_SHA256,
+):
+    inputs = _write_compare_inputs(
+        tmp_path,
+        current_overall_mean=current_overall_mean,
+        current_dataset_sha256=current_dataset_sha256,
+    )
+    output = tmp_path / "regression-report.json"
+    argv = [
+        "compare",
+        "--baseline", str(inputs["baseline"]),
+        "--metrics", str(inputs["metrics"]),
+        "--metadata", str(inputs["metadata"]),
+        "--predictions", str(inputs["predictions"]),
+        "--output", str(output),
+    ]
+    return inputs, argv, output
+
+
+def test_cli_create_baseline_end_to_end_exit_0(tmp_path):
+    paths, argv, output = _write_cli_create_args(tmp_path)
+    assert regression.main(argv) == 0
+    assert output.is_file()
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "dialog_regression_baseline_v1"
+    assert payload["created_at"] == "2026-08-27T00:00:00Z"
+
+
+def test_cli_compare_clean_exit_0(tmp_path):
+    inputs, argv, output = _write_cli_compare_args(tmp_path)
+    assert regression.main(argv) == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["comparison_valid"] is True
+    assert payload["regression_detected"] is False
+    assert payload["regressions"] == []
+
+
+def test_cli_compare_regression_exit_1(tmp_path):
+    inputs, argv, output = _write_cli_compare_args(tmp_path, current_overall_mean=0.5)
+    assert regression.main(argv) == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["regression_detected"] is True
+    assert payload["regressions"]
+
+
+def test_cli_compare_identity_mismatch_exit_2_with_report_written(tmp_path):
+    inputs, argv, output = _write_cli_compare_args(
+        tmp_path, current_dataset_sha256="f" * 64
+    )
+    baseline_before = _sha256_of(inputs["baseline"])
+    assert regression.main(argv) == 2
+    assert output.is_file()
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["comparison_valid"] is False
+    assert payload["regressions"] == []
+    assert _sha256_of(inputs["baseline"]) == baseline_before
+
+
+def test_cli_report_output_exists_exit_2(tmp_path):
+    inputs, argv, output = _write_cli_compare_args(tmp_path)
+    original = b'{"keep": "historical report"}\n'
+    output.write_bytes(original)
+    baseline_before = _sha256_of(inputs["baseline"])
+    assert regression.main(argv) == 2
+    assert output.read_bytes() == original
+    assert _sha256_of(inputs["baseline"]) == baseline_before
+
+
+def test_cli_invalid_json_exit_2(tmp_path):
+    paths = _write_fake_artifacts(tmp_path)
+    paths["metrics"].write_text("{not json", encoding="utf-8")
+    argv = [
+        "create-baseline",
+        "--metrics", str(paths["metrics"]),
+        "--metadata", str(paths["metadata"]),
+        "--predictions", str(paths["predictions"]),
+        "--adjudication", str(paths["adjudication"]),
+        "--output", str(tmp_path / "baseline.json"),
+    ]
+    assert regression.main(argv) == 2
+
+
+def test_cli_missing_file_exit_2(tmp_path):
+    paths = _write_fake_artifacts(tmp_path)
+    argv = [
+        "create-baseline",
+        "--metrics", str(tmp_path / "missing-metrics.json"),
+        "--metadata", str(paths["metadata"]),
+        "--predictions", str(paths["predictions"]),
+        "--adjudication", str(paths["adjudication"]),
+        "--output", str(tmp_path / "baseline.json"),
+    ]
+    assert regression.main(argv) == 2
+
+
+def test_module_imports_stdlib_only_and_never_reads_env_or_network(tmp_path, monkeypatch):
+    source = Path(regression.__file__).read_text(encoding="utf-8")
+    for token in (
+        "dotenv",
+        "load_dotenv",
+        "anthropic",
+        "httpx",
+        "requests",
+        "urllib",
+        "socket",
+        "subprocess",
+    ):
+        assert token not in source
+    for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "EVAL_JUDGE_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+    paths, argv, output = _write_cli_create_args(tmp_path)
+    assert regression.main(argv) == 0
+    assert output.is_file()
