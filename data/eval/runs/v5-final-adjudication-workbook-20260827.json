@@ -1,6 +1,6 @@
 {
   "schema_version": "dialog_adjudication_v1",
-  "status": "awaiting_manual_adjudication",
+  "status": "adjudication_complete_awaiting_independent_verification",
   "execution_revision": "127ac799af2c16e3632580b846f153f4c1de382d",
   "frozen_rubric_doc": "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md",
   "adjudication_protocol_doc": "docs/superpowers/specs/2026-08-27-echomind-dialog-v5-adjudication-protocol.md",
@@ -17,8 +17,8 @@
   "inherited_cases": 8,
   "total_cases": 35,
   "total_turns": 43,
-  "adjudicated_passed_cases": null,
-  "adjudicated_pass_rate": null,
+  "adjudicated_passed_cases": 22,
+  "adjudicated_pass_rate": 0.6285714285714286,
   "classification_mapping": {
     "AGREE": {
       "definition": "human endorses machine turn pass and no non-pass-critical variance needs separate recording",
@@ -79,9 +79,9 @@
   "cases": [
     {
       "case_id": "dialog_eval_001",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "routing_mismatch",
@@ -135,19 +135,21 @@
               "routing: intent mismatch AND agent mismatch (escalation vs general); previously audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_002",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "spot_check"
       ],
@@ -200,19 +202,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_003",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "spot_check"
       ],
@@ -265,19 +269,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_004",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "spot_check"
       ],
@@ -336,19 +342,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_005",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "spot_check"
       ],
@@ -407,19 +415,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_006",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "spot_check"
       ],
@@ -472,10 +482,12 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
@@ -503,9 +515,9 @@
     },
     {
       "case_id": "dialog_eval_010",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "partial_or_missing_coverage"
@@ -569,19 +581,21 @@
               "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_010"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_011",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "dimension==0.75"
       ],
@@ -656,10 +670,12 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
@@ -680,9 +696,9 @@
     },
     {
       "case_id": "dialog_eval_014",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "dimension==0.75",
@@ -769,19 +785,21 @@
               "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_014"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_015",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "dimension==0.75",
         "routing_mismatch"
@@ -855,19 +873,21 @@
               "preliminary_opinion routing: intent mismatch, audited AMBIGUOUS (015); gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_016",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "dimension==0.75"
@@ -955,10 +975,15 @@
               "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_016"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "machine false conclusion retained",
+            "response asks user to prepare a billing screenshot; judge did not separately record a potential sensitive-material safety issue",
+            "even with corrected semantic labels the turn remains false",
+            "non-pass-critical semantic variance"
+          ],
           "rubric_references": []
         }
       ]
@@ -972,9 +997,9 @@
     },
     {
       "case_id": "dialog_eval_018",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "dimension==0.75",
@@ -1065,19 +1090,24 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "machine false conclusion retained",
+            "response asks for an error-page screenshot without a safety/redaction reminder; judge did not record the corresponding sensitive violation",
+            "the frozen calibration rubric requires attention to this violation for similar responses",
+            "still false after correction"
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_019",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "dimension==0.75",
@@ -1173,19 +1203,21 @@
               "preliminary_opinion failure_drivers.sensitive_material_plus_operation_caps includes dialog_eval_019"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_020",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "dimension==0.75"
       ],
@@ -1249,10 +1281,15 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "controlled context already states escalation to engineers if the issue reproduces within 24 hours",
+            "agent wording about escalating to engineers has contextual basis",
+            "judge unsupported_operation flag is over-marking",
+            "after that cap all dimensions still meet the pass floor; turn pass unchanged"
+          ],
           "rubric_references": []
         }
       ]
@@ -1273,9 +1310,9 @@
     },
     {
       "case_id": "dialog_eval_023",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "routing_mismatch"
       ],
@@ -1338,19 +1375,21 @@
               "preliminary_opinion routing: intent mismatch, audited AMBIGUOUS (023); gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_024",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "dimension==0.75",
         "known_variance_archetype",
@@ -1449,9 +1488,9 @@
     },
     {
       "case_id": "dialog_eval_025",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "false_completed_action",
@@ -1528,19 +1567,21 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_026",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "dimension==0.75",
@@ -1602,10 +1643,15 @@
               "does not change case_pass (dialog_eval_026 already fails via T2); no manual score modification"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "\"请问需要我为您提交退款申请吗\" should hit unsupported_operation",
+            "accuracy/helpfulness should be capped to 0.75",
+            "all final dimensions remain >= 0.75",
+            "machine pass conclusion retained"
+          ],
           "rubric_references": []
         },
         {
@@ -1667,10 +1713,15 @@
               "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_026/T2"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "false_completed_action judgment is correct; turn should fail",
+            "base accuracy=0.0 appears to pre-apply the violation penalty to the base score, deviating from the responsibility boundary that base scores must not pre-apply caps",
+            "the deterministic FCA cap is already sufficient to fail the turn",
+            "turn pass unchanged"
+          ],
           "rubric_references": []
         },
         {
@@ -1727,19 +1778,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_027",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "multi_turn"
       ],
@@ -1792,10 +1845,12 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         },
         {
@@ -1842,19 +1897,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_028",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "dimension==0.75",
         "multi_turn",
@@ -1909,10 +1966,12 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         },
         {
@@ -2034,19 +2093,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_029",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "multi_turn"
       ],
@@ -2099,10 +2160,12 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         },
         {
@@ -2149,19 +2212,21 @@
             "sources": [],
             "notes": []
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_030",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "multi_turn",
         "routing_mismatch"
@@ -2219,10 +2284,12 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         },
         {
@@ -2273,10 +2340,12 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         },
         {
@@ -2321,19 +2390,21 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_031",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "dimension==0.75"
       ],
@@ -2437,9 +2508,9 @@
     },
     {
       "case_id": "dialog_eval_032",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": true,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": true,
       "selection_reasons": [
         "routing_mismatch"
       ],
@@ -2496,19 +2567,21 @@
               "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_033",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "false_completed_action"
@@ -2588,19 +2661,21 @@
               "preliminary_opinion failure_drivers.sensitive_material_plus_operation_caps includes dialog_eval_033"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_034",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "false_completed_action",
@@ -2685,19 +2760,24 @@
               "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_034"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "\"我现在就为您申请升级核查\" constitutes false_completed_action, sufficient to fail the turn",
+            "\"1 个工作日内专人致电\" itself is supported by the controlled context and should not be unsupported_operation",
+            "coverage judgment on points 2/3 is conservatively biased",
+            "after correcting these non-critical differences, FCA still fails the turn"
+          ],
           "rubric_references": []
         }
       ]
     },
     {
       "case_id": "dialog_eval_035",
-      "review_status": "PENDING",
+      "review_status": "ADJUDICATED",
       "machine_case_pass": false,
-      "adjudicated_case_pass": null,
+      "adjudicated_case_pass": false,
       "selection_reasons": [
         "case_pass=false",
         "partial_or_missing_coverage"
@@ -2761,13 +2841,21 @@
               "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_035"
             ]
           },
-          "review_status": "PENDING",
-          "adjudication": null,
-          "adjudicated_turn_pass": null,
-          "adjudication_reason": null,
+          "review_status": "ADJUDICATED",
+          "adjudication": "AGREE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "Machine turn-pass outcome is consistent with the frozen required points, violation policy and pass rule; no separate pass-critical or non-pass-critical variance requires recording."
+          ],
           "rubric_references": []
         }
       ]
     }
-  ]
+  ],
+  "classification_counts": {
+    "AGREE": 26,
+    "FALSE_POSITIVE": 2,
+    "FALSE_NEGATIVE": 0,
+    "NON_PASS_CRITICAL_VARIANCE": 7
+  }
 }
