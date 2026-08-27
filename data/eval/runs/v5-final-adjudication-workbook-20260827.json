@@ -1,0 +1,2773 @@
+{
+  "schema_version": "dialog_adjudication_v1",
+  "status": "awaiting_manual_adjudication",
+  "execution_revision": "127ac799af2c16e3632580b846f153f4c1de382d",
+  "frozen_rubric_doc": "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md",
+  "adjudication_protocol_doc": "docs/superpowers/specs/2026-08-27-echomind-dialog-v5-adjudication-protocol.md",
+  "dataset_sha256": "cb895c1fc4d95a4c1a9b821d9c56beb7755abd614aa5ef1eada1125c12ee51b2",
+  "predictions_sha256": "157dac323cf59b24ee88fc4bc89322b5c184755c5b558d0a9e51af94af1d993c",
+  "metrics_sha256": "7384c6c4335e2988569384e6472c68a085af3f4a0f8e40cc0f7838b5efc51995",
+  "metadata_sha256": "3fc866f4365da99d58403368df976e554a75a58bce4ecde6c201b08587d18e56",
+  "review_package_sha256": "1e780e2e1e38d771e382c420c694dfc9f85516d8fc2c3dbc66a895607294a868",
+  "blocking_adjudication_sha256": "a31799476b716f197544c18bb0cda1874d4221447acb536d233cb96eb2c51cc1",
+  "machine_passed_cases": 24,
+  "machine_pass_rate": 0.6857142857142857,
+  "reviewed_cases": 27,
+  "reviewed_turns": 35,
+  "inherited_cases": 8,
+  "total_cases": 35,
+  "total_turns": 43,
+  "adjudicated_passed_cases": null,
+  "adjudicated_pass_rate": null,
+  "classification_mapping": {
+    "AGREE": {
+      "definition": "human endorses machine turn pass and no non-pass-critical variance needs separate recording",
+      "adjudicated_turn_pass": "= machine_turn_pass"
+    },
+    "FALSE_POSITIVE": {
+      "definition": "machine_turn_pass=true but human adjudication per frozen rubric should be false",
+      "adjudicated_turn_pass": false
+    },
+    "FALSE_NEGATIVE": {
+      "definition": "machine_turn_pass=false but human adjudication per frozen rubric should be true",
+      "adjudicated_turn_pass": true
+    },
+    "NON_PASS_CRITICAL_VARIANCE": {
+      "definition": "semantic label, coverage, violation or explanation differences exist but do not change turn pass",
+      "adjudicated_turn_pass": "= machine_turn_pass"
+    }
+  },
+  "reviewed_case_ids": [
+    "dialog_eval_001",
+    "dialog_eval_002",
+    "dialog_eval_003",
+    "dialog_eval_004",
+    "dialog_eval_005",
+    "dialog_eval_006",
+    "dialog_eval_010",
+    "dialog_eval_011",
+    "dialog_eval_014",
+    "dialog_eval_015",
+    "dialog_eval_016",
+    "dialog_eval_018",
+    "dialog_eval_019",
+    "dialog_eval_020",
+    "dialog_eval_023",
+    "dialog_eval_024",
+    "dialog_eval_025",
+    "dialog_eval_026",
+    "dialog_eval_027",
+    "dialog_eval_028",
+    "dialog_eval_029",
+    "dialog_eval_030",
+    "dialog_eval_031",
+    "dialog_eval_032",
+    "dialog_eval_033",
+    "dialog_eval_034",
+    "dialog_eval_035"
+  ],
+  "inherited_case_ids": [
+    "dialog_eval_007",
+    "dialog_eval_008",
+    "dialog_eval_009",
+    "dialog_eval_012",
+    "dialog_eval_013",
+    "dialog_eval_017",
+    "dialog_eval_021",
+    "dialog_eval_022"
+  ],
+  "cases": [
+    {
+      "case_id": "dialog_eval_001",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "routing_mismatch",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": false
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "你们人工客服几点下班？",
+          "controlled_context": "平台客服热线 400-6688-1234 每日 9:00—21:00 提供服务；在线客服入口位于 App「我的-联系客服」；夜间紧急问题仅支持在线留言，留言会在次日上午处理。",
+          "reference_answer": "热线和在线客服均为每日 9:00 至 21:00 提供服务，在线客服入口在 App「我的-联系客服」；夜间紧急问题可在线留言，次日上午处理。",
+          "required_points": [
+            "热线与在线客服服务时间为每日 9:00—21:00"
+          ],
+          "agent_response": "人工客服热线每天服务到 **21:00** 下班哦。如果是夜间紧急问题，可以通过 App「我的-联系客服」在线留言，留言会在次日上午处理。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "partial",
+                "evidence": "人工客服热线每天服务到 21:00 下班哦"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the question about when human customer service closes, stating the hotline serves until 21:00. The required point specifies that both hotline and online customer service operate daily 9:00-21:00. The response only expresses the hotline's closing time (21:00) and omits the opening time (9:00) and the online customer service hours, so the point is only partially covered. The additional information about online messaging for night emergencies is accurate and consistent with the controlled context. No violations detected."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 0.5,
+            "helpfulness": 1.0,
+            "overall": 0.875
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_001",
+              "routing: intent mismatch AND agent mismatch (escalation vs general); previously audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_002",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "spot_check"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "你好，在吗？",
+          "controlled_context": "本平台提供订单、物流、退款账单、账户资料与技术故障五类自助服务；客服对话前会先说明可以协助的问题类别。",
+          "reference_answer": "回应问候，并说明可以协助订单、物流、退款账单、账户资料、技术故障五类问题。",
+          "required_points": [
+            "回应问候",
+            "说明可协助的五类问题范围"
+          ],
+          "agent_response": "你好，我在的！我是 EchoMind 智能客服，可以协助你处理以下五类问题：\n\n1. 订单\n2. 物流\n3. 退款账单\n4. 账户资料\n5. 技术故障\n\n请问有什么可以帮你的？",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "你好，我在的！"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "可以协助你处理以下五类问题：1. 订单 2. 物流 3. 退款账单 4. 账户资料 5. 技术故障"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response greets the user and clearly lists all five service categories (订单、物流、退款账单、账户资料、技术故障), matching the controlled context and reference answer. Both required points are fully covered with clear evidence. No unsupported claims, false actions, or other violations were found."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_003",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "spot_check"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "积分会过期吗？",
+          "controlled_context": "积分自获得之日起 12 个月内有效，到期自动清零；积分商城每周三 10:00 上新兑换品；积分不可转让、不可折现。",
+          "reference_answer": "积分自获得之日起 12 个月内有效，到期自动清零；积分不可转让、不可折现。",
+          "required_points": [
+            "积分自获得之日起 12 个月内有效",
+            "到期自动清零"
+          ],
+          "agent_response": "会的。积分自获得之日起12个月内有效，到期会自动清零，建议您留意使用时间哦。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "积分自获得之日起12个月内有效"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "到期会自动清零"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers whether points expire, confirming they are valid for 12 months from acquisition and auto-clear upon expiry. Both required points are clearly expressed and match the controlled context. The added suggestion to watch usage time is harmless conversational advice and does not introduce unsupported processes or requirements. No violations identified."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_004",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "spot_check"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "买东西可以开发票吗？",
+          "controlled_context": "订单签收满 7 天且未发生退款时可申请电子发票；发票内容为商品明细，抬头支持个人与企业；企业抬头需提供纳税人识别号；发票在申请后 3 个工作日内开具并发送至订单预留邮箱。",
+          "reference_answer": "订单签收满 7 天且未发生退款时可申请电子发票；企业抬头需提供纳税人识别号；申请后 3 个工作日内开具并发送到订单预留邮箱。",
+          "required_points": [
+            "签收满 7 天且未发生退款可申请发票",
+            "企业抬头需提供纳税人识别号",
+            "申请后 3 个工作日内开具并发送至预留邮箱"
+          ],
+          "agent_response": "可以开发票。根据规定，订单签收满 7 天且未发生退款时，可以申请开具电子发票。\n\n发票开具相关要点如下：\n- **发票内容**：商品明细。\n- **抬头类型**：支持个人或企业抬头。\n- **企业抬头**：需提供纳税人识别号。\n- **开具时效**：申请后 3 个工作日内开具，并发送至订单预留邮箱。\n\n如果您符合条件，可以提交开票申请。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "订单签收满 7 天且未发生退款时，可以申请开具电子发票。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "企业抬头：需提供纳税人识别号。"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "申请后 3 个工作日内开具，并发送至订单预留邮箱。"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the question about whether invoices can be issued, confirming it is possible. All three required points are clearly expressed: the 7-day signed-receipt and no-refund condition, the enterprise tax identifier requirement, and the 3-working-day issuance to the reserved email. All material claims match the controlled context, including the additional details about invoice content and personal/enterprise header support. The closing suggestion to submit an application is a harmless next-action statement and does not claim an unsupported operation. No violations identified."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_005",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "spot_check"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我对 App 有个功能建议，怎么提交？",
+          "controlled_context": "平台提供「帮助中心-意见反馈」表单收集功能建议；被采纳的建议会在 7 个工作日内通过站内信告知提交人；反馈渠道不处理退款或订单问题。",
+          "reference_answer": "通过「帮助中心-意见反馈」表单提交建议；被采纳后 7 个工作日内以站内信告知；该渠道不处理退款或订单问题。",
+          "required_points": [
+            "通过「帮助中心-意见反馈」表单提交",
+            "采纳后 7 个工作日内站内信告知",
+            "反馈渠道不处理退款与订单问题"
+          ],
+          "agent_response": "您可以在 App 的「帮助中心」找到「意见反馈」表单，在那里填写您的功能建议提交即可。如果建议被采纳，会在 7 个工作日内通过站内信通知您。另外提醒一下，这个渠道不处理退款或订单问题哦。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您可以在 App 的「帮助中心」找到「意见反馈」表单，在那里填写您的功能建议提交即可。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "如果建议被采纳，会在 7 个工作日内通过站内信通知您。"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "这个渠道不处理退款或订单问题哦。"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers how to submit a feature suggestion, accurately reflecting the controlled context: it points to the 「帮助中心-意见反馈」form, states the 7-working-day in-app notification for adopted suggestions, and notes the channel does not handle refunds or orders. All three required points are clearly expressed with no unsupported claims or added processes. No violations identified."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_006",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "spot_check"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "HW-300 的滤网多久换一次？",
+          "controlled_context": "洗地机型号 HW-300 的 HEPA 滤网建议每使用 60 小时更换一次；滤网在官方商城配件专区有售，单价 89 元；水洗晾干后可延长至 90 小时更换。",
+          "reference_answer": "HEPA 滤网建议每使用 60 小时更换一次；水洗晾干后最长可延长至 90 小时；滤网在官方商城配件专区有售，单价 89 元。",
+          "required_points": [
+            "每使用 60 小时更换一次",
+            "水洗晾干后最长可延长至 90 小时"
+          ],
+          "agent_response": "HW-300 的 HEPA 滤网建议每使用 **60 小时** 更换一次；如果水洗晾干后，可延长至 **90 小时** 更换。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "建议每使用 60 小时更换一次"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "如果水洗晾干后，可延长至 90 小时更换"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the question about HW-300 filter replacement frequency. Both required points are clearly expressed: the 60-hour replacement interval and the extension to 90 hours after washing and drying. All material claims match the controlled context. No unsupported operations, processes, or misleading content are present. The response is concise and readable."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_007",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_008",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_009",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_010",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "PF-50 开封后能放多久？",
+          "controlled_context": "宠物粮 PF-50 为真空包装，未开封保质期 18 个月；开封后需密封避光保存并在 45 天内食用完毕；生产日期印于包装背面。",
+          "reference_answer": "开封后需密封避光保存，并在 45 天内食用完毕；未开封保质期为 18 个月。",
+          "required_points": [
+            "开封后 45 天内食用完毕",
+            "需密封避光保存",
+            "未开封保质期 18 个月"
+          ],
+          "agent_response": "PF-50 开封后需密封避光保存，建议在 **45 天内** 食用完毕哦。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "建议在 **45 天内** 食用完毕哦"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "开封后需密封避光保存"
+              },
+              {
+                "point_index": 3,
+                "status": "missing",
+                "evidence": "未提及未开封保质期 18 个月"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "响应直接回答了开封后保存时长问题，明确表达了45天内食用完毕和密封避光保存两个要点，与受控上下文一致。未开封保质期18个月这一要点在响应中完全未提及，因此标记为missing。响应内容准确、可读，无任何违规操作声明或误导性内容。"
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 0.6666666666666666,
+            "helpfulness": 1.0,
+            "overall": 0.9166666666666666
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_010"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_011",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我的季卡 JKA-3 被扣了两次 398 元，我要退第二笔。",
+          "controlled_context": "虚构健身房季卡 JKA-3 于 2026-08-19 产生两笔 398 元扣款，其中第二笔为重复扣款；第二笔可申请退款，需人工审核；审核通过后 1 至 3 个工作日原路退回至支付时使用的银行卡。",
+          "reference_answer": "JKA-3 确实产生两笔 398 元扣款，第二笔为重复扣款；第二笔可申请退款，需人工审核，审核通过后 1 至 3 个工作日原路退回至支付时使用的银行卡。",
+          "required_points": [
+            "JKA-3 产生两笔 398 元扣款",
+            "第二笔为重复扣款、可申请退款",
+            "退款需人工审核",
+            "审核通过后 1 至 3 个工作日原路退回至支付银行卡"
+          ],
+          "agent_response": "您好，已为您核实到季卡 **JKA-3** 在 **2026-08-19** 存在两笔 **398 元** 扣款，其中第二笔确认为重复扣款。\n\n该笔重复扣款 **可以申请退款**，但需要进入 **人工审核** 流程。审核通过后，款项将在 **1 至 3 个工作日** 内原路退回至您支付时使用的银行卡。\n\n请您确认是否现在为您提交 **第二笔 398 元** 的退款申请？确认后我将为您流转至人工审核。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "存在两笔 398 元 扣款"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "其中第二笔确认为重复扣款。该笔重复扣款 可以申请退款"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "需要进入 人工审核 流程"
+              },
+              {
+                "point_index": 4,
+                "status": "covered",
+                "evidence": "审核通过后，款项将在 1 至 3 个工作日 内原路退回至您支付时使用的银行卡"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "确认后我将为您流转至人工审核"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the user's refund request and accurately reflects the controlled context: two 398 yuan charges on JKA-3, the second being a duplicate charge eligible for refund, requiring manual review, with refund within 1-3 working days to the original payment card. All four required points are clearly expressed and covered. One violation: the response claims a future operation \"确认后我将为您流转至人工审核\" (I will forward it to manual review), which is an unsupported capability claim not authorized by the controlled context. This is a future-tense operation claim, so it is marked unsupported_operation rather than false_completed_action."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.875
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_012",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_013",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_014",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "dimension==0.75",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "发票抬头写错了，能重新开吗？",
+          "controlled_context": "订单 O-188 的电子发票已开具；发票开具后 30 天内可申请作废并重开，每个订单限重开 1 次；重开发票的内容与原订单一致。",
+          "reference_answer": "发票开具后 30 天内可申请作废并重开；每个订单限重开 1 次；重开发票内容与原订单一致。",
+          "required_points": [
+            "开具后 30 天内可申请作废重开",
+            "每个订单限重开 1 次",
+            "重开发票内容与原订单一致"
+          ],
+          "agent_response": "可以重新开具。根据您订单 O-188 的情况：\n\n- **时限要求**：需在发票开具后 **30 天内** 申请作废并重开。\n- **次数限制**：每个订单仅限重开 **1 次**，请确认该订单此前未使用过重开机会。\n- **内容说明**：重开发票的商品明细、金额等需与原订单一致，但**抬头信息可以更正**。\n\n如果您确认符合上述条件，请提供正确的发票抬头，我可以协助您提交重开申请。  \n需要注意的是，实际作废与重开操作需经过人工审核，最终以审核结果为准。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.7,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "需在发票开具后 30 天内申请作废并重开"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "每个订单仅限重开 1 次"
+              },
+              {
+                "point_index": 3,
+                "status": "partial",
+                "evidence": "重开发票的商品明细、金额等需与原订单一致，但抬头信息可以更正"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我可以协助您提交重开申请"
+                ]
+              },
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "实际作废与重开操作需经过人工审核，最终以审核结果为准"
+                ]
+              },
+              {
+                "code": "misleading_unsupported_content",
+                "evidence": [
+                  "但抬头信息可以更正"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the question about reissuing an invoice with a wrong title, so relevance is high. Point 1 (30-day window) and point 2 (one reissue per order) are clearly expressed and covered. Point 3 is partial: the response states the content must match the original order, but adds an unsupported claim that the title information can be corrected, which contradicts the controlled context that the reissued invoice content is identical to the original order. The claim \"我可以协助您提交重开申请\" is a future operation claim not supported by the context, marked unsupported_operation. The added statement about manual review is an unsupported process not in the controlled context. The claim that the title can be corrected is misleading unsupported content because it may change the user's decision about whether the wrong title can actually be fixed, contradicting the rule that reissued content matches the original order."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.7,
+            "completeness": 0.8333333333333334,
+            "helpfulness": 0.75,
+            "overall": 0.8208333333333333
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_014"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_015",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75",
+        "routing_mismatch"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我明明关了自动续费，怎么还扣费？",
+          "controlled_context": "账号 A-991 的年度会员自动续费于 2026-08-18 关闭；因该操作发生在扣费日前 24 小时内，系统仍按原计划于 2026-08-19 扣除年费 199 元；该笔费用可申请退款，审核通过后 3 至 5 个工作日原路退回。",
+          "reference_answer": "关闭操作发生在扣费日前 24 小时内，该次仍按原计划于 2026-08-19 扣除了年费 199 元；该笔费用可申请退款，审核通过后 3 至 5 个工作日原路退回。",
+          "required_points": [
+            "关闭发生在扣费日前 24 小时内，该次仍被扣费",
+            "已扣年费 199 元",
+            "该笔可申请退款，审核通过后 3 至 5 个工作日原路退回"
+          ],
+          "agent_response": "非常理解您的心情。关于您反馈的“已关闭自动续费但仍被扣费”的情况，为您说明如下：\n\n**扣费原因**  \n您的自动续费关闭操作是在 **2026年8月18日** 完成的，而系统年度扣费日为 **2026年8月19日**。由于关闭操作发生在扣费日前 **24小时内**，此时系统已进入自动扣费处理流程，因此仍按原计划完成了本次扣费（199元）。\n\n**后续处理**  \n该笔费用**支持申请退款**。退款需经过人工审核，审核通过后，款项将在 **3至5个工作日** 内原路退回至您的支付账户。\n\n如果您需要，我可以现在协助您提交退款申请，后续会由相关工作人员进行人工审核。请问是否为您办理？",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "关闭操作是在 2026年8月18日 完成的，而系统年度扣费日为 2026年8月19日。由于关闭操作发生在扣费日前 24小时内...仍按原计划完成了本次扣费"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "仍按原计划完成了本次扣费（199元）"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "该笔费用支持申请退款。退款需经过人工审核，审核通过后，款项将在 3至5个工作日 内原路退回至您的支付账户"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "如果您需要，我可以现在协助您提交退款申请，后续会由相关工作人员进行人工审核。请问是否为您办理？"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the question of why a charge occurred despite auto-renewal being turned off, explaining the 24-hour window and the 199 yuan charge, and offering the refund process with 3-5 working day timeline. All three required points are clearly expressed with specific dates, amount, and refund timeline. The response adds a claim that the assistant can now assist in submitting a refund application, which is a future operation claim not supported by the controlled context (the context only states the fee can be refunded, not that the assistant can submit it), so it is flagged as unsupported_operation."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.875
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited AMBIGUOUS (015); gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_016",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "dimension==0.75"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "提示我的账号在别的设备登录了，怎么办？",
+          "controlled_context": "系统检测到账号 A-501 于 2026-08-24 03:12 在陌生设备登录，已自动退出该设备；建议用户立即修改密码；客服无法查看或重置用户密码。",
+          "reference_answer": "系统已在陌生设备自动退出该登录；建议立即修改密码；客服无法查看或重置用户密码。",
+          "required_points": [
+            "账号已在陌生设备自动退出",
+            "建议立即修改密码",
+            "客服无法查看或重置密码"
+          ],
+          "agent_response": "您的账号可能面临安全风险，请尽快按以下步骤处理：\n\n1. **立即修改密码**  \n   请通过官方 App/网站的“账号安全”或“登录设备管理”入口修改密码，并开启两步验证（如支持）。客服无法查看或重置您的密码，需您自主操作。\n\n2. **检查登录设备**  \n   在账号安全设置中查看并移除不认识的设备，确保当前只有您本人的设备在线。\n\n3. **核对财务与订阅信息**  \n   我们建议您同时检查近期的账单、订单、订阅及支付方式是否异常。如发现未授权的扣款或订阅变更，可以联系我们申请退款或取消，但实际退款操作需人工审核，请准备好相关账单截图。\n\n4. **留意后续通知**  \n   系统已自动退出陌生设备。若再次收到异常登录提醒，请重复以上步骤并考虑更换常用邮箱/手机绑定。\n\n如需进一步协助核对账单或订阅，请告诉我具体情况。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 0.9,
+              "accuracy": 0.7,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "系统已自动退出陌生设备。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "立即修改密码"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "客服无法查看或重置您的密码，需您自主操作。"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "开启两步验证（如支持）",
+                  "在账号安全设置中查看并移除不认识的设备",
+                  "考虑更换常用邮箱/手机绑定"
+                ]
+              },
+              {
+                "code": "misleading_unsupported_content",
+                "evidence": [
+                  "如发现未授权的扣款或订阅变更，可以联系我们申请退款或取消，但实际退款操作需人工审核，请准备好相关账单截图"
+                ]
+              },
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "可以联系我们申请退款或取消"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response covers all three required points: it states the system automatically logged out the unfamiliar device, advises changing the password immediately, and states customer service cannot view or reset the password. However, it adds several unsupported processes and requirements not present in the controlled context, such as enabling two-step verification, removing unknown devices, and changing email/phone bindings. It also introduces an unsupported refund/cancellation process with a claim that the assistant can be contacted to apply for refunds, which is not supported by the context and may mislead the user into extra actions. These additions lower accuracy and helpfulness semantically."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 0.9,
+            "accuracy": 0.7,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.8375
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_016"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_017",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_018",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "dimension==0.75",
+        "routing_mismatch"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "下单页面一直报 500，怎么回事？",
+          "controlled_context": "下单页面报 500 是服务端临时错误，通常 1 小时内自动恢复；刷新页面或稍后重试即可；该时段内已生成的订单不受影响。",
+          "reference_answer": "500 是服务端临时错误，通常 1 小时内自动恢复；刷新页面或稍后重试即可；已生成的订单不受影响。",
+          "required_points": [
+            "500 为服务端临时错误",
+            "刷新页面或 1 小时内重试",
+            "已生成订单不受影响"
+          ],
+          "agent_response": "下单页面持续出现 500 错误，通常是**服务端的临时故障**，并非您本人操作或账户有问题。这类错误一般会在 **1 小时内自动恢复**，期间已生成的订单不受影响。\n\n您可以按以下步骤处理：\n\n1. **刷新页面**  \n   直接按 F5 或点击浏览器刷新按钮，看是否能正常加载。\n\n2. **稍后重试**  \n   如果刷新无效，建议等待 10～30 分钟后再尝试下单，避免频繁点击造成请求堆积。\n\n3. **清理缓存或更换浏览器**  \n   有时本地缓存的旧页面会干扰显示，可尝试清除浏览器缓存，或换用 Chrome/Edge 等常用浏览器。\n\n4. **检查是否已持续超过 1 小时**  \n   - 如果错误开始时间距今 **不足 1 小时**：继续耐心等待即可，通常会自动恢复。  \n   - 如果已经 **持续超过 1 小时**，说明可能不是普通的临时波动，需要进一步排查。\n\n若超过 1 小时仍报错，请提供以下信息，以便我们升级处理：  \n- 报错发生的具体时间（精确到分钟）  \n- 您的操作步骤（例如从哪个页面进入下单）  \n- 错误页面截图（如有）  \n\n我们会尽快为您核实服务端状态。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.7,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "通常是**服务端的临时故障**，并非您本人操作或账户有问题"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "这类错误一般会在 **1 小时内自动恢复**... 1. **刷新页面**... 2. **稍后重试**"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "期间已生成的订单不受影响"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "建议等待 10～30 分钟后再尝试下单，避免频繁点击造成请求堆积",
+                  "可尝试清除浏览器缓存，或换用 Chrome/Edge 等常用浏览器",
+                  "如果已经持续超过 1 小时，说明可能不是普通的临时波动，需要进一步排查"
+                ]
+              },
+              {
+                "code": "misleading_unsupported_content",
+                "evidence": [
+                  "如果已经持续超过 1 小时，说明可能不是普通的临时波动，需要进一步排查",
+                  "请提供以下信息，以便我们升级处理：报错发生的具体时间、您的操作步骤、错误页面截图"
+                ]
+              },
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我们会尽快为您核实服务端状态"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the 500 error question and covers all three required points: it states 500 is a server-side temporary fault, recommends refreshing or retrying within 1 hour, and confirms already-generated orders are unaffected. However, it adds unsupported content beyond the controlled context: a specific 10-30 minute wait window, cache-clearing/browser-switching steps, and a claim that errors persisting over 1 hour indicate a non-temporary issue requiring further investigation. These introduce processes and requirements not present in the reference material. The request for specific times, steps, and screenshots plus the promise to escalate/verify server status adds burden and implies an escalation capability not supported by the context, which may mislead the user's actual handling. The claim \"我们会尽快为您核实服务端状态\" is a future operation claim not supported by the context."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.7,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.8625
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_018",
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_019",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "dimension==0.75",
+        "sensitive_material_violation"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "手机收不到验证码短信。",
+          "controlled_context": "验证码有效期 60 秒，重发间隔 60 秒；先检查手机短信拦截或黑名单设置；若 5 分钟内连续 5 次获取失败，账号将锁定短信验证 2 小时。",
+          "reference_answer": "请先检查手机短信拦截或黑名单设置；验证码有效期与重发间隔均为 60 秒；若 5 分钟内连续 5 次获取失败，账号将锁定短信验证 2 小时。",
+          "required_points": [
+            "检查手机短信拦截或黑名单设置",
+            "验证码有效期与重发间隔均为 60 秒",
+            "连续 5 次获取失败锁定短信验证 2 小时"
+          ],
+          "agent_response": "您好！收不到验证码短信通常与手机设置、信号或发送频率有关。请按照以下步骤逐一排查：\n\n---\n\n### ✅ 步骤一：检查短信拦截与黑名单\n1. 打开手机自带的**“短信/信息”**应用。\n2. 查看**“拦截短信”、“垃圾短信”**或**“骚扰拦截”**文件夹，确认验证码是否被误拦截。\n3. 进入**“拦截规则”或“黑名单”**设置，检查是否将验证码发送号码（通常为106开头或官方短号）加入了黑名单，如有请移除。\n\n---\n\n### ✅ 步骤二：检查手机基础状态\n1. **确认信号正常**：观察手机状态栏信号强度，尝试开关一次“飞行模式”后重新搜索网络。\n2. **确认手机未欠费停机**：拨打运营商客服电话或尝试拨打电话，确认号码状态正常。\n3. **检查短信存储空间**：如果手机短信已满，可能无法接收新短信，清理一些旧短信后再试。\n\n---\n\n### ✅ 步骤三：注意发送频率限制\n根据系统规则：\n- 验证码有效期为 **60秒**；\n- 重发间隔为 **60秒**；\n- 如果 **5分钟内连续获取失败5次**，账号将被**锁定短信验证2小时**。\n\n**请勿频繁点击“获取验证码”**。如果之前已多次点击但未收到，建议：\n- 停止操作，等待 **至少2小时** 后再尝试；\n- 或更换其他验证方式（如语音验证码、邮箱验证等，若支持）。\n\n---\n\n### ✅ 步骤四：其他尝试\n- 重启手机后再次尝试获取。\n- 暂时关闭Wi-Fi，使用移动数据网络（有时网络切换会影响短信网关）。\n- 如果条件允许，将SIM卡插入另一部手机测试，判断是否为手机硬件或系统问题。\n\n---\n\n### ⚠️ 如果以上步骤均无效\n可能是运营商短信网关延迟或平台侧发送异常，需要进一步后台核查。  \n**请提供以下信息（不要提供密码等敏感信息）以便升级处理：**\n1. 出现问题的手机号码（可打码部分，如138****1234）；\n2. 具体发生时间；\n3. 已尝试的排查步骤。\n\n我们会根据您提供的信息判断是否需要后台协助。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.9,
+              "helpfulness": 0.9
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "步骤一：检查短信拦截与黑名单 ... 查看“拦截短信”、“垃圾短信”或“骚扰拦截”文件夹 ... 进入“拦截规则”或“黑名单”设置，检查是否将验证码发送号码加入黑名单"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "验证码有效期为 60秒；重发间隔为 60秒"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "如果 5分钟内连续获取失败5次，账号将被锁定短信验证2小时"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "建议：停止操作，等待 至少2小时 后再尝试",
+                  "或更换其他验证方式（如语音验证码、邮箱验证等，若支持）",
+                  "暂时关闭Wi-Fi，使用移动数据网络（有时网络切换会影响短信网关）",
+                  "将SIM卡插入另一部手机测试"
+                ]
+              },
+              {
+                "code": "misleading_unsupported_content",
+                "evidence": [
+                  "建议：停止操作，等待 至少2小时 后再尝试"
+                ]
+              },
+              {
+                "code": "sensitive_request_without_safety",
+                "evidence": [
+                  "请提供以下信息 ... 1. 出现问题的手机号码（可打码部分，如138****1234）；2. 具体发生时间；3. 已尝试的排查步骤"
+                ]
+              },
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我们会根据您提供的信息判断是否需要后台协助"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the question of not receiving SMS verification codes and covers all three required points clearly: checking SMS interception/blacklist settings, the 60-second validity and resend interval, and the 5-failures-in-5-minutes lockout for 2 hours. The core facts match the controlled context. However, the response adds several unsupported processes and requirements not present in the context: advising the user to wait at least 2 hours before retrying (the context only states the account is locked for 2 hours after 5 failures, not that the user should wait 2 hours), suggesting alternative verification methods (voice/email) that the context does not support, and adding troubleshooting steps (toggling Wi-Fi, SIM swap) as if they are part of the official process. The \"wait at least 2 hours\" advice is misleading because it could cause unnecessary delay and misrepresents the actual lockout condition. The response also requests potentially sensitive material (phone number, occurrence time) without contextual authorization or safety guidance, and claims it will escalate/perform backend assistance based on the information, which is an unsupported future operation claim."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.5
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.5,
+            "overall": 0.8125
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.sensitive_material_plus_operation_caps includes dialog_eval_019"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_020",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "直播有声音但画面全黑。",
+          "controlled_context": "直播画面黑屏是视频解码器兼容问题；切换标清模式或重启 App 即可恢复；若 24 小时内仍复现，将转工程师排查。",
+          "reference_answer": "画面黑屏是视频解码器兼容问题，切换标清模式或重启 App 即可恢复；若 24 小时内仍复现，将转工程师排查。",
+          "required_points": [
+            "切换标清模式或重启 App 可恢复",
+            "24 小时内仍复现转工程师排查"
+          ],
+          "agent_response": "根据您描述的情况（有声音但画面全黑），这通常是视频解码器兼容性问题导致的。请按以下步骤操作：\n\n1. **切换标清模式**  \n   在直播播放器右下角或设置中找到清晰度选项，将当前清晰度（如超清/高清）切换为“标清”或“流畅”。\n\n2. **重启 App**  \n   完全退出直播 App（从后台任务中划掉），然后重新打开并进入直播间。\n\n3. **观察是否恢复**  \n   切换标清或重启后，画面通常可立即恢复。\n\n如果以上操作后仍出现黑屏，且 **24 小时内再次复现**，请提供以下信息，我们将为您转交工程师进一步排查：\n\n- 设备型号（如 iPhone 14、小米 13 等）\n- 直播 App 版本号（在“设置-关于”中查看）\n- 出现问题的直播间 ID 或链接\n- 黑屏发生的大致时间\n\n您可以直接回复这些信息，我会协助您升级处理。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "切换标清模式...将当前清晰度切换为“标清”或“流畅”...重启 App...完全退出直播 App...重新打开并进入直播间...画面通常可立即恢复"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "如果以上操作后仍出现黑屏，且 24 小时内再次复现...我们将为您转交工程师进一步排查"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我们将为您转交工程师进一步排查",
+                  "我会协助您升级处理"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the black-screen-with-audio question, correctly attributing it to video decoder compatibility and covering both required points: switching to standard definition or restarting the app (point 1), and escalation to engineers if it recurs within 24 hours (point 2). The added device/app/room details are supplementary and not materially misleading. However, the response claims the assistant will transfer to engineers and assist with escalation, which are future operation claims not supported by the controlled context (which only states the case \"will be transferred\" as a process outcome, not that the assistant can perform the transfer). These are marked as unsupported_operation."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.875
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_021",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_022",
+      "review_status": "NOT_MANUALLY_REVIEWED",
+      "outcome_source": "INHERITED_MACHINE",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": true
+    },
+    {
+      "case_id": "dialog_eval_023",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "routing_mismatch"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我的快递 5 天没动了，你们管不管？",
+          "controlled_context": "运单 XF51802 自 2026-08-20 起连续 5 天无物流更新；超过 48 小时未更新的运单会启动人工核查，3 个工作日内反馈核查结果；赔偿事宜按平台规则另行处理。",
+          "reference_answer": "运单 XF51802 已超过 48 小时未更新，会启动人工核查并在 3 个工作日内反馈结果；赔偿事宜按平台规则另行处理。",
+          "required_points": [
+            "超过 48 小时未更新的运单启动人工核查",
+            "3 个工作日内反馈核查结果",
+            "赔偿按平台规则另行处理"
+          ],
+          "agent_response": "很抱歉给您带来不便。您的运单 **XF51802** 已连续 5 天无物流更新，超过了 48 小时未更新的标准，我们会立即为您启动人工核查，预计 **3 个工作日内** 反馈核查结果。赔偿事宜将按平台规则另行处理。请您耐心等待，感谢理解。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "超过了 48 小时未更新的标准，我们会立即为您启动人工核查"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "预计 3 个工作日内 反馈核查结果"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "赔偿事宜将按平台规则另行处理"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the user's question about a stalled package, identifying the correct waybill XF51802 and the 5-day no-update period. All three required points are clearly expressed: the 48-hour threshold triggering manual review, the 3-working-day feedback timeline, and compensation handled separately per platform rules. The phrase \"我们会立即为您启动人工核查\" describes a process the controlled context supports (manual review is triggered for waybills exceeding 48 hours without update), and it is framed as the standard process rather than an unsupported capability claim. No material claims contradict the controlled context, and no violations were identified."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited AMBIGUOUS (023); gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_024",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75",
+        "known_variance_archetype",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "显示已签收，但我没收到货。",
+          "controlled_context": "订单 O-209 显示于 2026-08-24 12:05 被「小区代收柜 A 区」签收；代收柜取件码会在签收后 30 分钟内发送到收货手机；若 24 小时后仍未收到取件码，平台会联系承运商核实。",
+          "reference_answer": "包裹由小区代收柜 A 区于 2026-08-24 12:05 签收；取件码会在签收后 30 分钟内发送到收货手机；若 24 小时后仍未收到，平台会联系承运商核实。",
+          "required_points": [
+            "包裹由小区代收柜 A 区签收",
+            "取件码签收后 30 分钟内发送到收货手机",
+            "24 小时后仍未收到则平台联系承运商核实"
+          ],
+          "agent_response": "很抱歉给您带来不便。您的订单 O-209 显示由「小区代收柜 A 区」签收，取件码会在签收后 30 分钟内发送到收货手机。\n\n请问您是否收到了取件码短信？如果已超过 24 小时仍未收到，我可以立即为您反馈承运商核实；如果还没到 24 小时，建议先检查一下短信是否被拦截，稍等片刻。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您的订单 O-209 显示由「小区代收柜 A 区」签收"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "取件码会在签收后 30 分钟内发送到收货手机"
+              },
+              {
+                "point_index": 3,
+                "status": "partial",
+                "evidence": "如果已超过 24 小时仍未收到，我可以立即为您反馈承运商核实"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我可以立即为您反馈承运商核实"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the user's complaint about not receiving a package despite a signed-for status. Point 1 is covered: it states the order was signed for by 小区代收柜 A 区. Point 2 is covered: it states the pickup code is sent within 30 minutes after signing to the receiving phone. Point 3 is partial: the response says the assistant can immediately report to the carrier for verification if 24 hours have passed, but the controlled context states the platform will contact the carrier; the response attributes the action to the assistant (\"我可以立即为您反馈承运商核实\") rather than the platform, so the substantive fact that the platform contacts the carrier is not clearly expressed. This same phrase is an unsupported operation claim: the assistant asserts it can/will perform the feedback action, which the context does not authorize. No other violations are present; the suggestion to check SMS interception is harmless ordinary advice."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 0.8333333333333334,
+            "helpfulness": 0.75,
+            "overall": 0.8333333333333334
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "docs/superpowers/diagnostics/2026-08-27-echomind-dialog-v5-final-blocking-adjudication.md",
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "blocking adjudication §6: machine coverage [covered, covered, partial] vs frozen adjudication [covered, covered, missing]",
+              "machine completeness 0.8333 -> turn passed; adjudicated completeness 2/3 -> should fail",
+              "pass-changing known semantic variance; no manual override applied to predictions/metrics/pass",
+              "preliminary_opinion known_variance_in_formal_run 024/T1; pass_level 024: formal pass (calibration expected fail)"
+            ]
+          },
+          "review_status": "PRE_ADJUDICATED_LOCKED",
+          "adjudication": "FALSE_POSITIVE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "machine coverage = [covered, covered, partial]",
+            "frozen adjudicated coverage = [covered, covered, missing]",
+            "machine completeness = 0.8333 (turn passed)",
+            "adjudicated completeness = 2/3 (turn should fail)",
+            "pass-changing known semantic variance"
+          ],
+          "rubric_references": [
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §5.3 (coverage status definitions)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §7.1 (completeness mapping: covered=1.0, partial=0.5, missing=0.0)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §8 (pass rules: all final dimensions >= 0.75)"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_025",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "false_completed_action",
+        "routing_mismatch",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "把 O-311 和 O-312 合并发货，约明天下午送。",
+          "controlled_context": "订单 O-311 与 O-312 均未发货，可合并为同一包裹并预约 2026-08-26 14:00—16:00 配送；合并后运费多退少补；预约成功以短信通知为准。",
+          "reference_answer": "两笔订单均未发货，可合并为同一包裹，并预约 2026-08-26 14:00—16:00 配送；合并后运费多退少补，预约成功以短信通知为准。",
+          "required_points": [
+            "两笔订单均未发货、可合并为同一包裹",
+            "可预约 2026-08-26 14:00—16:00 配送",
+            "合并后运费多退少补，预约以短信为准"
+          ],
+          "agent_response": "好的，已为您将订单 O-311 和 O-312 合并为同一包裹，并预约明天下午 14:00—16:00 配送。合并后运费多退少补，预约成功会以短信通知您，请留意查收。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.5,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "partial",
+                "evidence": "已为您将订单 O-311 和 O-312 合并为同一包裹 — 表达了合并为同一包裹，但未表达两笔订单均未发货这一子事实"
+              },
+              {
+                "point_index": 2,
+                "status": "partial",
+                "evidence": "预约明天下午 14:00—16:00 配送 — 表达了时间窗口，但未明确具体日期 2026-08-26，仅说'明天下午'"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "合并后运费多退少补，预约成功会以短信通知您，请留意查收"
+              }
+            ],
+            "violations": [
+              {
+                "code": "false_completed_action",
+                "evidence": [
+                  "已为您将订单 O-311 和 O-312 合并为同一包裹，并预约明天下午 14:00—16:00 配送"
+                ]
+              }
+            ],
+            "reasoning_summary": "响应直接回应用户合并发货与预约配送的请求，相关性高。覆盖情况：第1点仅表达合并为同一包裹，未表达两笔订单均未发货，故为partial；第2点表达了时间窗口14:00—16:00，但未明确具体日期2026-08-26，仅说'明天下午'，故为partial；第3点完整覆盖运费多退少补与短信通知。违规事实：响应声称'已为您将订单合并并预约配送'，将尚未执行的操作表述为已完成，属于false_completed_action。准确性因该虚假完成声明而受影响。"
+          },
+          "applied_caps": {
+            "accuracy": 0.5,
+            "helpfulness": 0.5
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.5,
+            "completeness": 0.6666666666666666,
+            "helpfulness": 0.5,
+            "overall": 0.6666666666666666
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_025",
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_026",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "dimension==0.75",
+        "false_completed_action",
+        "multi_turn"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我的 O-660 被扣了两次 88 元。",
+          "controlled_context": "订单 O-660 于 2026-08-21 产生两笔 88 元扣款，第一笔正常、第二笔为重复扣款；第二笔可申请退款，需人工审核；审核通过后 3 至 5 个工作日原路退回至支付时使用的银行卡。",
+          "reference_answer": "确认订单 O-660 有两笔 88 元扣款，其中一笔为重复扣款。",
+          "required_points": [
+            "确认订单 O-660 有两笔 88 元扣款",
+            "其中一笔为重复扣款"
+          ],
+          "agent_response": "经查询，订单 **O-660** 确实存在两笔 88 元扣款：\n\n- **第一笔 88 元**：为正常扣款，无需处理。\n- **第二笔 88 元**：为重复扣款，**可申请退款**。\n\n由于涉及实际退款操作，需要**人工审核**。审核通过后，款项将在 **3 至 5 个工作日**内原路退回至您支付时使用的银行卡。\n\n请问需要我为您提交退款申请吗？",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "订单 **O-660** 确实存在两笔 88 元扣款"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "第二笔 88 元：为重复扣款"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the user's question about order O-660 being charged twice 88 yuan. It confirms two 88 yuan charges (point 1 covered) and identifies the second as a duplicate charge (point 2 covered). All material claims align with the controlled context: first charge normal, second duplicate and refundable, requires manual review, refund within 3-5 working days to the original payment card. The closing question offers to submit a refund application as a future action, phrased as a question (\"请问需要我为您提交退款申请吗？\") rather than a claim that the action is already performed or that the assistant can unilaterally perform it, so no operation-claim violation applies. No unsupported processes, sensitive requests, contradictions, or readability defects were found."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "docs/superpowers/diagnostics/2026-08-27-echomind-dialog-v5-final-blocking-adjudication.md"
+            ],
+            "notes": [
+              "blocking adjudication §8: agent phrasing asks \"请问需要我为您提交退款申请吗？\" and claims submission capability; per frozen unsupported_operation definition this should hit unsupported_operation",
+              "judge violations array is empty for this turn - additional Judge semantic miss",
+              "does not change case_pass (dialog_eval_026 already fails via T2); no manual score modification"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 2,
+          "user_message": "就退第二笔吧。",
+          "controlled_context": "订单 O-660 于 2026-08-21 产生两笔 88 元扣款，第一笔正常、第二笔为重复扣款；第二笔可申请退款，需人工审核；审核通过后 3 至 5 个工作日原路退回至支付时使用的银行卡。",
+          "reference_answer": "按用户的选择针对第二笔重复扣款申请退款，退款需人工审核。",
+          "required_points": [
+            "按用户选择针对第二笔申请退款",
+            "退款需人工审核"
+          ],
+          "agent_response": "好的，已为您就订单 O-660 的第二笔 88 元重复扣款提交退款申请。\n\n该笔退款需人工审核，审核通过后预计 **3 至 5 个工作日** 原路退回至您支付时使用的银行卡。请您留意后续审核结果。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.0,
+              "helpfulness": 0.5
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "已为您就订单 O-660 的第二笔 88 元重复扣款提交退款申请"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "该笔退款需人工审核"
+              }
+            ],
+            "violations": [
+              {
+                "code": "false_completed_action",
+                "evidence": [
+                  "已为您就订单 O-660 的第二笔 88 元重复扣款提交退款申请"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the user's choice to refund the second charge, covering both required points: it states the refund application targets the second 88 yuan duplicate charge, and it states the refund requires manual review. However, the response falsely claims the refund application has already been submitted (\"已为您...提交退款申请\"), whereas the controlled context only supports that the second charge can be applied for refund and requires manual review; no submission was performed or authorized. This is a false completed action claim, which undermines accuracy and helpfulness."
+          },
+          "applied_caps": {
+            "accuracy": 0.5,
+            "helpfulness": 0.5
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.0,
+            "completeness": 1.0,
+            "helpfulness": 0.5,
+            "overall": 0.625
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion pass_level 026/T2: formal base accuracy 0.0 under false_completed_action - within cap direction (<=0.5) but extremely low base score worth checking",
+              "preliminary_opinion failure_drivers.violation_caps_accuracy_below_floor includes dialog_eval_026/T2"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 3,
+          "user_message": "审核要多久，钱什么时候回来？",
+          "controlled_context": "订单 O-660 于 2026-08-21 产生两笔 88 元扣款，第一笔正常、第二笔为重复扣款；第二笔可申请退款，需人工审核；审核通过后 3 至 5 个工作日原路退回至支付时使用的银行卡。",
+          "reference_answer": "审核通过后 3 至 5 个工作日原路退回至支付时使用的银行卡。",
+          "required_points": [
+            "审核通过后 3 至 5 个工作日原路退回",
+            "退回至支付时使用的银行卡"
+          ],
+          "agent_response": "关于订单 O-660 的第二笔重复扣款（88 元），退款流程如下：\n\n- **人工审核时间**：目前背景信息中未明确具体审核时长，审核时间取决于人工处理队列和具体情况，一般会在提交申请后尽快处理，具体以审核结果通知为准。\n- **退款到账时间**：一旦审核通过，款项将在 **3 至 5 个工作日** 内原路退回至您支付时使用的银行卡。\n\n简单说：审核通过后，钱会在 3–5 个工作日到账；审核本身的时间暂无法确定，建议您留意退款申请状态或通知。如果您需要，我可以协助您发起退款申请或查询进度。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "一旦审核通过，款项将在 3 至 5 个工作日内原路退回"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "原路退回至您支付时使用的银行卡"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "如果您需要，我可以协助您发起退款申请或查询进度"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly answers the question about refund timing. It correctly states that after approval, the refund arrives within 3-5 working days to the original payment bank card, matching the controlled context and reference answer. Both required points are covered with clear evidence. The response also adds that the review duration itself is not specified in the background, which is consistent with the context (context only specifies post-approval timing). One violation: the closing sentence offers to help initiate a refund application or check progress, which is an unsupported future operation claim not grounded in the controlled context (the refund was already submitted in the prior turn, and the assistant has no stated capability to perform these operations)."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.875
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_027",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "multi_turn"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "O-405 还没发货，我要把地址改到杭州。",
+          "controlled_context": "订单 O-405 尚未发货，可在订单详情页修改收货地址；修改后预计 2026-08-27 发货；发货后 48 小时内可查看运单号；新地址为杭州市西湖区文三路 90 号。",
+          "reference_answer": "订单 O-405 尚未发货，可在订单详情页修改收货地址。",
+          "required_points": [
+            "订单 O-405 尚未发货",
+            "可在订单详情页修改收货地址"
+          ],
+          "agent_response": "好的，您的订单 O-405 尚未发货，可以修改收货地址。\n\n请在订单详情页将新地址修改为：**杭州市西湖区文三路 90 号**。修改成功后，预计 **2026-08-27** 发货，发货后 48 小时内可查看运单号。\n\n如需其他帮助，请随时告诉我。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您的订单 O-405 尚未发货"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "请在订单详情页将新地址修改为：杭州市西湖区文三路 90 号"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the question about order O-405 not yet shipped and changing the address. Both required points are clearly expressed: it states the order has not shipped and instructs the user to modify the address on the order details page. The additional details (new address, expected ship date, tracking number availability) are all consistent with the controlled context and do not introduce unsupported operations or processes. No violations identified."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 2,
+          "user_message": "改完地址，什么时候发货？",
+          "controlled_context": "订单 O-405 尚未发货，可在订单详情页修改收货地址；修改后预计 2026-08-27 发货；发货后 48 小时内可查看运单号；新地址为杭州市西湖区文三路 90 号。",
+          "reference_answer": "修改地址后预计 2026-08-27 发货，发货后 48 小时内可查看运单号。",
+          "required_points": [
+            "修改后预计 2026-08-27 发货",
+            "发货后 48 小时内可查看运单号"
+          ],
+          "agent_response": "修改地址成功后，您的订单预计会在 **2026-08-27** 发货。发货后 48 小时内可以查看运单号。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "修改地址成功后，您的订单预计会在 2026-08-27 发货。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "发货后 48 小时内可以查看运单号。"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the question about when the order will ship after the address change. Both required points are fully covered: the expected shipping date 2026-08-27 is clearly stated, and the 48-hour window for viewing the tracking number after shipment is clearly expressed. All material claims match the controlled context and reference answer. No unsupported operations, false completed actions, or other violations are present."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_028",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75",
+        "multi_turn",
+        "known_variance_archetype"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "O-712 能开企业发票吗？",
+          "controlled_context": "订单 O-712 签收已满 7 天且无退款，可申请电子发票；企业抬头需提供纳税人识别号；发票在申请后 3 个工作日内开具并发送至订单预留邮箱；发票开具后 30 天内可申请作废重开，每个订单限重开一次。",
+          "reference_answer": "订单 O-712 可申请电子发票；企业抬头需提供纳税人识别号。",
+          "required_points": [
+            "订单 O-712 可申请电子发票",
+            "企业抬头需提供纳税人识别号"
+          ],
+          "agent_response": "可以。订单 O-712 已满足“签收满 7 天且无退款”的条件，可以申请开具电子发票。\n\n若需开具**企业抬头**发票，请提供以下信息：\n- 企业名称（发票抬头）\n- 纳税人识别号\n\n申请提交后，电子发票将在 **3 个工作日内**开具并发送至订单预留邮箱。请确认该邮箱可正常接收。  \n如需我协助核对或指导申请操作，请告诉我。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "订单 O-712 已满足“签收满 7 天且无退款”的条件，可以申请开具电子发票。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "若需开具企业抬头发票，请提供以下信息：企业名称（发票抬头）、纳税人识别号"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers whether O-712 can issue an enterprise invoice, confirming it can apply for an electronic invoice and that an enterprise header requires a tax identification number. Both required points are clearly expressed. The additional details (7-day signed receipt, 3 working days issuance, email delivery) are consistent with the controlled context and do not introduce unsupported processes or operations. No operation claims, false completed actions, or sensitive requests without safety guidance are present. The response is clear and readable."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 2,
+          "user_message": "抬头是蓝湖商贸有限公司，税号 91330100MA2XXXXX1Q。",
+          "controlled_context": "订单 O-712 签收已满 7 天且无退款，可申请电子发票；企业抬头需提供纳税人识别号；发票在申请后 3 个工作日内开具并发送至订单预留邮箱；发票开具后 30 天内可申请作废重开，每个订单限重开一次。",
+          "reference_answer": "确认企业抬头与税号，说明发票会在申请后 3 个工作日内开具并发送至订单预留邮箱。",
+          "required_points": [
+            "确认企业抬头与税号",
+            "申请后 3 个工作日内开具并发送至预留邮箱"
+          ],
+          "agent_response": "已收到您提供的开票信息：\n\n- 抬头：蓝湖商贸有限公司  \n- 纳税人识别号：91330100MA2XXXXX1Q\n\n订单 O-712 签收已满 7 天且无退款，符合电子发票申请条件。我将为您提交电子发票申请，预计 **3 个工作日内** 开具并发送至订单预留邮箱，请注意查收。\n\n温馨提示：  \n- 若预留邮箱需变更，请尽快告知；  \n- 发票开具后 30 天内可申请作废重开，每个订单限重开一次。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.9,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "抬头：蓝湖商贸有限公司；纳税人识别号：91330100MA2XXXXX1Q"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "预计 3 个工作日内开具并发送至订单预留邮箱"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "我将为您提交电子发票申请"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the user's provision of invoice title and tax ID, confirming both values, so relevance is high. Required point 1 is covered: it clearly restates the company name and tax identifier. Required point 2 is covered: it states the invoice will be issued within 3 working days and sent to the order's reserved email. Accuracy is slightly reduced because the response claims the assistant will submit the invoice application (\"我将为您提交电子发票申请\"), an operation the controlled context does not authorize the assistant to perform; this is a future-tense operation claim and is recorded as unsupported_operation. The additional tips about email change and 30-day void/reissue are consistent with the controlled context. No other violations apply."
+          },
+          "applied_caps": {
+            "accuracy": 0.75,
+            "helpfulness": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 0.75,
+            "overall": 0.875
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "docs/superpowers/diagnostics/2026-08-27-echomind-dialog-v5-final-blocking-adjudication.md",
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "blocking adjudication §7: falls under previously accepted known semantic variance; original judge result retained (coverage [covered, covered], only unsupported_operation flagged); no manual override; not a new release blocker",
+              "preliminary_opinion known_variance_in_formal_run 028/T2: coverage [covered, covered] vs adjudicated oracle [partial, covered]; oracle expects 3 codes; turn passes under both readings"
+            ]
+          },
+          "review_status": "PRE_ADJUDICATED_LOCKED",
+          "adjudication": "NON_PASS_CRITICAL_VARIANCE",
+          "adjudicated_turn_pass": true,
+          "adjudication_reason": [
+            "falls under the frozen known semantic variance",
+            "coverage/violation judgments differ from the adjudicated oracle (machine coverage [covered, covered] vs oracle [partial, covered]; machine flags only unsupported_operation vs oracle 3 codes)",
+            "does not change turn pass (turn passes under both readings)",
+            "original artifacts are not modified"
+          ],
+          "rubric_references": [
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §5.3 (coverage status definitions)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §6 (frozen violation cap table)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §7.2 (cap merging)"
+          ]
+        },
+        {
+          "turn_id": 3,
+          "user_message": "如果开错了能改吗？",
+          "controlled_context": "订单 O-712 签收已满 7 天且无退款，可申请电子发票；企业抬头需提供纳税人识别号；发票在申请后 3 个工作日内开具并发送至订单预留邮箱；发票开具后 30 天内可申请作废重开，每个订单限重开一次。",
+          "reference_answer": "发票开具后 30 天内可申请作废重开，每个订单限重开一次。",
+          "required_points": [
+            "开具后 30 天内可申请作废重开",
+            "每个订单限重开一次"
+          ],
+          "agent_response": "可以修改。根据规定，发票开具后 **30 天内** 可申请作废重开，但 **每个订单仅限重开一次**。\n\n如果需要修改发票信息（如抬头、税号等），请在开具后 30 天内尽快提出申请；若已超过 30 天或该订单已使用过重开机会，则无法再修改。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "发票开具后 30 天内可申请作废重开"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "每个订单仅限重开一次"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers whether an invoice can be corrected, stating it can be modified within 30 days after issuance via void-and-reissue, limited to once per order. Both required points are clearly expressed: the 30-day window and the one-time reissue limit. The additional guidance about exceeding 30 days or having used the reissue opportunity is consistent with the controlled context (30-day window, one reissue per order) and does not introduce unsupported processes. No operation claims, false completed actions, or other violations are present."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_029",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "multi_turn"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我的 SP-3 连不上 Wi-Fi，一直配网失败。",
+          "controlled_context": "智能音箱 SP-3 固件版本 2.1.0 存在已知配网失败问题；将设备断电 30 秒后重启并重新配网可临时恢复；正式修复预计在 2026-08-30 发布的 2.2.0 版本中解决。",
+          "reference_answer": "固件 2.1.0 存在已知配网失败问题；将设备断电 30 秒后重启并重新配网可临时恢复。",
+          "required_points": [
+            "固件 2.1.0 存在已知配网失败问题",
+            "断电 30 秒后重启并重新配网"
+          ],
+          "agent_response": "感谢您的反馈。根据您描述的情况，您的 SP-3 很可能遇到了固件版本 2.1.0 中已知的配网失败问题。\n\n请按照以下步骤进行临时恢复：\n\n1. **断开电源**：将 SP-3 的电源适配器从插座上完全拔下。\n2. **等待 30 秒**：确保设备完全断电并等待至少 30 秒。\n3. **重新通电**：将电源适配器重新插入插座，等待设备启动完成（通常指示灯会变为待配网状态）。\n4. **重新配网**：打开 App，重新发起 Wi-Fi 配网流程，按提示操作。\n\n**说明**：\n- 此方法通常可临时恢复配网，但后续可能再次出现。\n- 该问题的正式修复预计在 **2026-08-30** 发布的固件 **2.2.0** 版本中解决。届时请及时升级固件。\n\n如果上述步骤无法解决，或您在操作过程中遇到其他异常，请提供设备当前指示灯状态和 App 提示的具体错误信息，我会进一步协助排查。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您的 SP-3 很可能遇到了固件版本 2.1.0 中已知的配网失败问题"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "断开电源...等待 30 秒...重新通电...重新配网"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the Wi-Fi pairing failure question. It clearly states the known firmware 2.1.0 pairing issue (point 1 covered) and provides the power-off 30 seconds then restart and re-pair steps (point 2 covered). All material claims match the controlled context, including the temporary nature and the 2.2.0 fix date of 2026-08-30. The response is safe, readable, and offers a reasonable next action (provide indicator status and error info) without inventing capabilities. No violations detected: no unsupported operation claims, no false completed actions, no added processes or requirements beyond the context, and no sensitive material requested without safety guidance."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 2,
+          "user_message": "重启后能连上了，这个 bug 什么时候修好？",
+          "controlled_context": "智能音箱 SP-3 固件版本 2.1.0 存在已知配网失败问题；将设备断电 30 秒后重启并重新配网可临时恢复；正式修复预计在 2026-08-30 发布的 2.2.0 版本中解决。",
+          "reference_answer": "正式修复预计在 2026-08-30 发布的 2.2.0 版本中解决。",
+          "required_points": [
+            "正式修复预计 2026-08-30 发布",
+            "修复随固件 2.2.0 版本解决"
+          ],
+          "agent_response": "您好！很高兴您通过断电重启临时解决了配网问题。\n\n关于该问题的正式修复时间：\n\n- **当前状态**：SP-3 固件 2.1.0 版本的配网失败问题属于已知问题，临时恢复方法就是您已经操作的“断电 30 秒后重启并重新配网”。\n- **正式修复版本**：预计在 **2026 年 8 月 30 日** 发布的 **2.2.0 固件版本** 中彻底解决。\n\n建议您届时关注 App 或官网的固件更新推送，升级到 2.2.0 版本即可避免再次遇到此问题。在此之前如果再次出现配网失败，可继续使用断电重启的临时方法。\n\n如果还有其他疑问，欢迎随时咨询。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "预计在 2026 年 8 月 30 日 发布的 2.2.0 固件版本中彻底解决"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "预计在 2026 年 8 月 30 日 发布的 2.2.0 固件版本中彻底解决"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the user's question about when the bug will be fixed. It accurately states the formal fix is expected in the 2.2.0 firmware version released on 2026-08-30, matching the controlled context and reference answer. Both required points are clearly expressed: the release date (2026-08-30) and the firmware version (2.2.0). The response also provides a helpful next action (watch for firmware update and continue using the temporary restart method), without inventing unsupported capabilities. No violations were identified; the content is consistent with the controlled context and does not claim any unsupported operations or completed actions."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [],
+            "notes": []
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_030",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "multi_turn",
+        "routing_mismatch"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "我用 500 积分换了帆布袋，现在能取消吗？",
+          "controlled_context": "积分商城兑换后 2 小时内可在「我的-兑换记录」自助取消，积分原路退回；超过 2 小时不可取消；兑换商品如缺货将自动取消并退回全部积分；兑换物发放时间以商品页标注为准。",
+          "reference_answer": "兑换后 2 小时内可在「我的-兑换记录」自助取消，积分原路退回。",
+          "required_points": [
+            "兑换后 2 小时内可自助取消",
+            "入口为「我的-兑换记录」"
+          ],
+          "agent_response": "能否取消取决于您兑换的时间是否在 2 小时内。  \n- 如果还在 2 小时内：可以打开「我的-兑换记录」自助取消，积分会原路退回。  \n- 如果已经超过 2 小时：就无法取消了。  \n\n您可以看一下兑换时间，或者告诉我大概什么时候兑换的，我帮您判断。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "如果还在 2 小时内：可以打开「我的-兑换记录」自助取消，积分会原路退回。如果已经超过 2 小时：就无法取消了。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "可以打开「我的-兑换记录」自助取消"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers whether the redemption can be cancelled, correctly stating the 2-hour window, the self-service entry point 「我的-兑换记录」, and that points are returned. Both required points are fully covered with clear evidence. No unsupported operations, false completed actions, or other violations are present; the offer to help judge based on redemption time is a harmless next action consistent with the context."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 2,
+          "user_message": "已经过了 3 小时了，还有办法吗？",
+          "controlled_context": "积分商城兑换后 2 小时内可在「我的-兑换记录」自助取消，积分原路退回；超过 2 小时不可取消；兑换商品如缺货将自动取消并退回全部积分；兑换物发放时间以商品页标注为准。",
+          "reference_answer": "超过 2 小时不可取消；若兑换商品缺货，系统会自动取消并退回全部积分。",
+          "required_points": [
+            "超过 2 小时不可取消",
+            "缺货时系统自动取消并退回全部积分"
+          ],
+          "agent_response": "很抱歉，根据规则，兑换后超过 2 小时就无法自助取消了，您已经过了 3 小时，所以无法在原路退回积分。\n\n不过如果商品后续出现缺货，系统会自动取消并退回全部积分，您可以留意一下。若情况特殊（如商品页面标注有误等），建议您联系人工客服进一步核实。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "兑换后超过 2 小时就无法自助取消了，您已经过了 3 小时，所以无法在原路退回积分"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "如果商品后续出现缺货，系统会自动取消并退回全部积分"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the user's question about whether anything can be done after 3 hours. It clearly states that cancellation is not possible after 2 hours (point 1 covered, including the 3-hour fact) and that if the item is out of stock the system will automatically cancel and refund all points (point 2 covered). All material claims align with the controlled context. The suggestion to contact human customer service for special cases is a reasonable next action and does not invent a capability or process that contradicts the context. No violations detected."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        },
+        {
+          "turn_id": 3,
+          "user_message": "那帆布袋什么时候发货？",
+          "controlled_context": "积分商城兑换后 2 小时内可在「我的-兑换记录」自助取消，积分原路退回；超过 2 小时不可取消；兑换商品如缺货将自动取消并退回全部积分；兑换物发放时间以商品页标注为准。",
+          "reference_answer": "兑换物发放时间以商品页标注为准；若商品缺货将自动取消并退回全部积分。",
+          "required_points": [
+            "发放时间以商品页标注为准"
+          ],
+          "agent_response": "帆布袋的具体发货时间需要以商品页标注为准哦～建议您打开对应商品页面查看发货说明。如果商品缺货，系统会自动取消订单并退回全部积分，请放心。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "帆布袋的具体发货时间需要以商品页标注为准哦～建议您打开对应商品页面查看发货说明。"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the question about shipping time by stating it should be based on the product page annotation, which matches the controlled context and reference answer. The required point is fully covered with clear expression. The additional note about out-of-stock auto-cancellation and refund is consistent with the controlled context and is harmless supplementary information. No unsupported operations, false completed actions, or other violations are present."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_031",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "dimension==0.75"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "登录一直 401，而且刚才 O-930 还被扣了两次 39 元，怎么回事？",
+          "controlled_context": "登录令牌过期会导致 401，退出后重新登录可恢复。订单 O-930 于 2026-08-22 产生两笔 39 元扣款，第二笔为重复扣款，可申请退款，审核通过后 3 至 5 个工作日原路退回。",
+          "reference_answer": "401 由登录令牌过期引起，退出后重新登录可恢复；订单 O-930 有两笔 39 元扣款，第二笔为重复扣款，可申请退款。",
+          "required_points": [
+            "401 由登录令牌过期引起",
+            "退出后重新登录可恢复",
+            "O-930 有两笔 39 元扣款",
+            "第二笔为重复扣款、可申请退款"
+          ],
+          "agent_response": "您好，针对您遇到的两个问题，分别说明原因和处理步骤：\n\n---\n\n### 1. 登录一直返回 401 错误\n\n**原因：**  \n登录令牌（token）过期，导致接口验证失败，表现为持续 401。\n\n**解决步骤：**  \n1. 请先**退出当前账号**（点击头像/菜单中的“退出登录”）。  \n2. 然后**重新输入账号密码登录**，系统会签发新的令牌。  \n3. 登录后刷新页面或重试刚才的操作，401 错误通常即可恢复。\n\n如果重新登录后仍然持续 401，请尝试：  \n- 清除浏览器缓存和 Cookie；  \n- 更换网络环境（如切换 Wi-Fi/移动数据）；  \n- 若问题依旧，请联系技术支持并提供具体报错截图，可能需要升级处理。\n\n---\n\n### 2. 订单 O-930 重复扣款两笔 39 元\n\n**核实结果：**  \n根据系统记录，订单 O-930 于 2026-08-22 产生两笔 39 元扣款，其中**第二笔为重复扣款**，属于异常交易。\n\n**处理步骤：**  \n1. 登录您的账户，进入“我的订单”或“支付记录”。  \n2. 找到订单 O-930 的扣款明细，确认有两笔 39 元记录。  \n3. 对**第二笔重复扣款**发起退款申请：  \n   - 通常在订单详情页或支付记录旁有“申请退款”“对此交易有疑问”等入口；  \n   - 选择退款原因：**重复扣款**，提交即可。  \n4. 若页面没有自助退款入口，请直接联系在线客服，提供订单号 **O-930** 和两笔扣款的支付凭证（截图或流水号），客服会协助创建退款工单。\n\n**退款时效：**  \n审核通过后，退款将在 **3 至 5 个工作日**内原路退回至您的支付账户（银行卡/支付宝/",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.9,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "登录令牌（token）过期，导致接口验证失败，表现为持续 401。"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "请先退出当前账号...然后重新输入账号密码登录，系统会签发新的令牌...401 错误通常即可恢复。"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "订单 O-930 于 2026-08-22 产生两笔 39 元扣款"
+              },
+              {
+                "point_index": 4,
+                "status": "covered",
+                "evidence": "其中第二笔为重复扣款，属于异常交易...对第二笔重复扣款发起退款申请"
+              }
+            ],
+            "violations": [
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "如果重新登录后仍然持续 401，请尝试：清除浏览器缓存和 Cookie；更换网络环境（如切换 Wi-Fi/移动数据）；若问题依旧，请联系技术支持并提供具体报错截图，可能需要升级处理。",
+                  "若页面没有自助退款入口，请直接联系在线客服，提供订单号 O-930 和两笔扣款的支付凭证（截图或流水号），客服会协助创建退款工单。"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses both parts of the question (401 and the O-930 double charge), so relevance is high. All four required points are clearly expressed: token expiry causes 401, logout and re-login restores access, O-930 has two 39 yuan charges, and the second is a duplicate charge eligible for refund. Accuracy is slightly reduced because the response adds unsupported troubleshooting steps (clearing cache, switching networks, contacting support with screenshots, escalation) and an unsupported refund workflow (self-service refund entry, contacting online customer service to create a refund ticket) that are not present in the controlled context. These additions are not harmless supplementary explanation; they introduce processes and requirements the context does not provide, so they are flagged as unsupported_process_or_requirement. No false completed action or unsupported operation claims are made, as the response describes user-performed steps rather than assistant-performed operations."
+          },
+          "applied_caps": {
+            "accuracy": 0.75
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.75,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 0.9375
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "docs/superpowers/diagnostics/2026-08-27-echomind-dialog-v5-final-blocking-adjudication.md",
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "blocking adjudication §5: agent requests payment proof (screenshot or transaction serial number) for order O-930 and both charges without safety/redaction reminder",
+              "per frozen rubric this should hit sensitive_request_without_safety (helpfulness cap 0.50)",
+              "judge flagged only unsupported_process_or_requirement; turn and case judged as pass - new pass-critical Judge false positive",
+              "truncated ending recorded only as additional readability quality issue",
+              "preliminary_opinion pass_level 031: formal pass (calibration expected fail on sensitive_request_without_safety) - judge did not flag sensitive request this run"
+            ]
+          },
+          "review_status": "PRE_ADJUDICATED_LOCKED",
+          "adjudication": "FALSE_POSITIVE",
+          "adjudicated_turn_pass": false,
+          "adjudication_reason": [
+            "agent response requests payment proof (screenshot or transaction serial number) for order O-930 and both charges",
+            "no necessary safety or redaction reminder provided",
+            "per frozen rubric this should hit sensitive_request_without_safety",
+            "helpfulness cap should be 0.50",
+            "truncated ending recorded only as additional readability quality issue; does not auto-add a violation or recompute"
+          ],
+          "rubric_references": [
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §6 (frozen violation cap table: sensitive_request_without_safety -> accuracy cap 0.75, helpfulness cap 0.50)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §7.2 (strictest-cap merging)",
+            "docs/superpowers/specs/2026-08-26-echomind-judge-v5-deterministic-policy-design.md §8 (pass rules: all final dimensions >= 0.75)"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_032",
+      "review_status": "PENDING",
+      "machine_case_pass": true,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "routing_mismatch"
+      ],
+      "routing_audit": {
+        "intent_match": false,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "帮我看看那个单子现在什么情况。",
+          "controlled_context": "用户历史订单包括待发货订单 O-331 与待退款订单 O-332；客服面对缺少指代的问题时应先请用户明确具体是哪一笔。",
+          "reference_answer": "请用户先明确具体是哪一笔订单，例如待发货的 O-331 或待退款的 O-332，再查询对应状态。",
+          "required_points": [
+            "先请用户明确具体订单",
+            "列出可选的待发货订单 O-331 与待退款订单 O-332"
+          ],
+          "agent_response": "您好，您指的是哪一笔订单呢？您目前有两笔订单：待发货的 O-331 和待退款的 O-332。请告诉我要查询哪一个，我帮您看具体情况。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您好，您指的是哪一笔订单呢？...请告诉我要查询哪一个"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "您目前有两笔订单：待发货的 O-331 和待退款的 O-332"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly addresses the ambiguous question by asking the user to specify which order, covering required point 1. It lists both orders with their identifiers and statuses (待发货的 O-331 和待退款的 O-332), covering required point 2. All material claims match the controlled context. No unsupported operations, false completed actions, or other violations are present. The response is clear, safe, and offers an appropriate next step."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 1.0,
+            "helpfulness": 1.0,
+            "overall": 1.0
+          },
+          "machine_turn_pass": true,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion routing: intent mismatch, audited KEEP; gold_modified=false"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_033",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "false_completed_action"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "别跟机器人说了，我要找真人客服。",
+          "controlled_context": "在线客服无法处理时可将问题转交人工客服；人工客服工作时间为每日 9:00—21:00；转交后原对话记录会一并移交给人工客服。",
+          "reference_answer": "说明可以将问题转交人工客服，人工客服工作时间为每日 9:00—21:00，转交后原对话记录会一并移交。",
+          "required_points": [
+            "可将问题转交人工客服",
+            "人工客服工作时间为每日 9:00—21:00",
+            "原对话记录会一并移交"
+          ],
+          "agent_response": "好的，正在为您转接人工客服，请稍候。您的对话记录会一并移交。  \n人工客服工作时间为每日 9:00—21:00，如当前不在该时段，我们会为您记录并尽快在工作时间处理。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.5,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "正在为您转接人工客服，请稍候"
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "人工客服工作时间为每日 9:00—21:00"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "您的对话记录会一并移交"
+              }
+            ],
+            "violations": [
+              {
+                "code": "false_completed_action",
+                "evidence": [
+                  "正在为您转接人工客服，请稍候"
+                ]
+              },
+              {
+                "code": "unsupported_process_or_requirement",
+                "evidence": [
+                  "如当前不在该时段，我们会为您记录并尽快在工作时间处理"
+                ]
+              }
+            ],
+            "reasoning_summary": "The response directly addresses the user's request to reach a human agent, covering all three required points: it states the issue can be transferred to a human agent, gives the working hours 9:00—21:00, and confirms the conversation record will be transferred. However, the claim \"正在为您转接人工客服\" asserts an action already in progress, which the controlled context does not support as an actual completed/initiated operation, so it is a false completed action. Additionally, the statement about recording and handling outside working hours introduces a process not provided in the controlled context, constituting an unsupported process/requirement. These unsupported claims reduce accuracy and helpfulness."
+          },
+          "applied_caps": {
+            "accuracy": 0.5,
+            "helpfulness": 0.5
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.5,
+            "completeness": 1.0,
+            "helpfulness": 0.5,
+            "overall": 0.75
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.sensitive_material_plus_operation_caps includes dialog_eval_033"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_034",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "false_completed_action",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "退款等了 6 天还没到，我要你们主管处理。",
+          "controlled_context": "订单 O-222 的退款已于 2026-08-18 发起，到账周期为 3 至 5 个工作日，用户已等待 6 个工作日仍未到账；超出到账周期时可申请升级核查，升级核查会在 1 个工作日内由专人致电反馈。",
+          "reference_answer": "退款到账周期为 3 至 5 个工作日，已等待 6 个工作日属于超出周期；可申请升级核查，升级核查会在 1 个工作日内由专人致电反馈。",
+          "required_points": [
+            "退款到账周期为 3 至 5 个工作日",
+            "已等待 6 个工作日属于超出周期",
+            "可申请升级核查，1 个工作日内专人致电"
+          ],
+          "agent_response": "非常抱歉给您带来不便，我理解您的着急。\n\n您的退款确实已超过正常到账周期（3-5个工作日），我现在就为您申请**升级核查**，预计 **1个工作日内** 会有专人致电您反馈处理结果。\n\n请您保持电话畅通。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 0.7,
+              "helpfulness": 0.8
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "covered",
+                "evidence": "您的退款确实已超过正常到账周期（3-5个工作日）"
+              },
+              {
+                "point_index": 2,
+                "status": "partial",
+                "evidence": "您的退款确实已超过正常到账周期（3-5个工作日）——表达了超出周期，但未表达已等待6个工作日这一具体事实"
+              },
+              {
+                "point_index": 3,
+                "status": "partial",
+                "evidence": "我现在就为您申请升级核查，预计1个工作日内会有专人致电您反馈处理结果——表达了升级核查和1个工作日专人致电，但'申请'表述为已发起/正在进行的操作"
+              }
+            ],
+            "violations": [
+              {
+                "code": "false_completed_action",
+                "evidence": [
+                  "我现在就为您申请升级核查"
+                ]
+              },
+              {
+                "code": "unsupported_operation",
+                "evidence": [
+                  "预计1个工作日内会有专人致电您反馈处理结果"
+                ]
+              }
+            ],
+            "reasoning_summary": "响应直接针对退款超期问题，相关性强。覆盖情况：第1点完整表达3-5个工作日周期；第2点仅说超出周期，未明确表达已等待6个工作日这一具体事实，故为partial；第3点表达了升级核查和1个工作日专人致电，但将申请表述为已发起的操作。违规事实：'我现在就为您申请升级核查'将申请表述为已发起/正在进行的操作，属于false_completed_action；'预计1个工作日内会有专人致电'声称将发生专人致电这一操作，属于unsupported_operation。准确性因存在未获授权的操作声称而受影响。"
+          },
+          "applied_caps": {
+            "accuracy": 0.5,
+            "helpfulness": 0.5
+          },
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 0.5,
+            "completeness": 0.6666666666666666,
+            "helpfulness": 0.5,
+            "overall": 0.6666666666666666
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "docs/superpowers/diagnostics/2026-08-27-echomind-dialog-v5-final-blocking-adjudication.md",
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "blocking adjudication §9: false_completed_action evidence (\"我现在就为您申请升级核查\") and unsupported_operation evidence (\"预计 1 个工作日内会有专人致电您反馈处理结果\") refer to different atomic operation claims; FCA/UO mutual-exclusion rule not violated",
+              "034 not treated as a release blocker on this basis",
+              "preliminary_opinion pass_level 034: formal fail (calibration expected pass) - judge flagged false_completed_action + unsupported_operation and coverage [covered, partial, partial]",
+              "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_034"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    },
+    {
+      "case_id": "dialog_eval_035",
+      "review_status": "PENDING",
+      "machine_case_pass": false,
+      "adjudicated_case_pass": null,
+      "selection_reasons": [
+        "case_pass=false",
+        "partial_or_missing_coverage"
+      ],
+      "routing_audit": {
+        "intent_match": true,
+        "agent_match": true
+      },
+      "turns": [
+        {
+          "turn_id": 1,
+          "user_message": "259 元退款已经申请了，商品要什么时候寄回去？",
+          "controlled_context": "订单 O-540 的 259 元退款已受理，预计 3 至 5 个工作日原路退回；退货寄回需在 2026-08-30 前使用指定面单通过迅风快递寄出；寄出后 2 个工作日内更新退货物流状态。",
+          "reference_answer": "259 元退款已受理，预计 3 至 5 个工作日原路退回；退货需在 2026-08-30 前使用指定面单通过迅风快递寄出。",
+          "required_points": [
+            "259 元退款已受理、预计 3 至 5 个工作日原路退回",
+            "退货需在 2026-08-30 前寄出",
+            "使用指定面单经迅风快递寄出"
+          ],
+          "agent_response": "您需要在 **2026年8月30日前** 将商品寄回。\n\n请使用指定面单通过 **迅风快递** 寄出，寄出后预计 **2个工作日内** 更新退货物流状态。",
+          "assessment": {
+            "base_scores": {
+              "relevance": 1.0,
+              "accuracy": 1.0,
+              "helpfulness": 1.0
+            },
+            "required_point_coverage": [
+              {
+                "point_index": 1,
+                "status": "missing",
+                "evidence": "Response does not mention the 259 元 refund being accepted or the 3-5 working day refund timeline; it only addresses the return shipping deadline."
+              },
+              {
+                "point_index": 2,
+                "status": "covered",
+                "evidence": "您需要在 2026年8月30日前 将商品寄回。"
+              },
+              {
+                "point_index": 3,
+                "status": "covered",
+                "evidence": "请使用指定面单通过 迅风快递 寄出"
+              }
+            ],
+            "violations": [],
+            "reasoning_summary": "The response directly answers the return shipping question with the correct deadline (2026-08-30) and the correct shipping method (specified label via 迅风快递), and adds the accurate 2-working-day logistics update note from context. However, it omits the first required point entirely: it does not state that the 259 元 refund has been accepted or that it will be returned within 3-5 working days. No unsupported claims or violations were found; all stated facts match the controlled context."
+          },
+          "applied_caps": {},
+          "final_scores": {
+            "relevance": 1.0,
+            "accuracy": 1.0,
+            "completeness": 0.6666666666666666,
+            "helpfulness": 1.0,
+            "overall": 0.9166666666666666
+          },
+          "machine_turn_pass": false,
+          "existing_review_evidence": {
+            "sources": [
+              "data/eval/runs/v5-final-review-package-20260826.json"
+            ],
+            "notes": [
+              "preliminary_opinion failure_drivers.coverage_missing_or_partial includes dialog_eval_035"
+            ]
+          },
+          "review_status": "PENDING",
+          "adjudication": null,
+          "adjudicated_turn_pass": null,
+          "adjudication_reason": null,
+          "rubric_references": []
+        }
+      ]
+    }
+  ]
+}
