@@ -10,12 +10,18 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Mapping, Sequence
 
 BASELINE_SCHEMA_VERSION = "dialog_regression_baseline_v1"
 BASELINE_KIND = "dialog_machine_monitoring"
+REPORT_SCHEMA_VERSION = "dialog_regression_report_v1"
 ADJUDICATED_PASS_RATE_FROZEN = 0.6285714285714286
+REGRESSION_THRESHOLD = -0.05
+
+_IDENTITY_FIELDS = ("dataset_sha256", "judge_model", "prompt_version", "pass_rule_version")
+_MONITORED_METRICS = ("machine_overall_mean", "machine_pass_rate")
 
 
 class RegressionInputError(ValueError):
@@ -278,6 +284,165 @@ def create_baseline(
     )
     write_json_new(output_path, baseline)
     return baseline
+
+
+def compare_against_baseline(
+    *,
+    baseline_path: Path,
+    metrics_path: Path,
+    metadata_path: Path,
+    predictions_path: Path,
+) -> dict[str, object]:
+    """Compare current artifacts against a frozen baseline, read-only.
+
+    Never writes any file and never modifies the baseline. Identity
+    incompatibility fails closed with ``comparison_valid=false`` in the
+    returned report instead of raising. Metric thresholds are judged
+    with exact decimal arithmetic; the boolean never comes from a float.
+    """
+    baseline = _require_mapping(_read_json(baseline_path), "baseline")
+    if baseline.get("schema_version") != BASELINE_SCHEMA_VERSION:
+        raise RegressionInputError(
+            f"baseline schema_version is not {BASELINE_SCHEMA_VERSION!r}"
+        )
+    for name in (
+        "dataset_sha256",
+        "judge_model",
+        "prompt_version",
+        "pass_rule_version",
+        "machine_overall_mean",
+        "machine_pass_rate",
+        "agent_failed_rate",
+        "judge_failed_rate",
+        "adjudicated_pass_rate",
+    ):
+        _require_field(baseline, name, "baseline")
+
+    current_metrics = _require_mapping(_read_json(metrics_path), "current metrics")
+    current_metadata = _require_mapping(_read_json(metadata_path), "current metadata")
+    current_overall_mean = _require_number(
+        _require_field(current_metrics, "overall_mean", "current metrics"),
+        "current metrics.overall_mean",
+    )
+    current_pass_rate = _require_number(
+        _require_field(current_metrics, "pass_rate", "current metrics"),
+        "current metrics.pass_rate",
+    )
+    current_agent_failed_rate = _require_number(
+        _require_field(current_metrics, "agent_failed_rate", "current metrics"),
+        "current metrics.agent_failed_rate",
+    )
+    current_judge_failed_rate = _require_number(
+        _require_field(current_metrics, "judge_failed_rate", "current metrics"),
+        "current metrics.judge_failed_rate",
+    )
+    current_git_revision = _require_string(
+        _require_field(current_metadata, "git_revision", "current metadata"),
+        "current metadata.git_revision",
+    )
+    current_dataset_sha256 = _require_string(
+        _require_field(current_metadata, "dataset_sha256", "current metadata"),
+        "current metadata.dataset_sha256",
+    )
+    current_judge_model = _require_string(
+        _require_field(current_metadata, "judge_model", "current metadata"),
+        "current metadata.judge_model",
+    )
+    current_prompt_version = _require_string(
+        _require_field(current_metadata, "prompt_version", "current metadata"),
+        "current metadata.prompt_version",
+    )
+    current_pass_rule_version = _require_string(
+        _require_field(current_metadata, "pass_rule_version", "current metadata"),
+        "current metadata.pass_rule_version",
+    )
+
+    identity_checks = []
+    for field in _IDENTITY_FIELDS:
+        identity_checks.append({
+            "field": field,
+            "baseline": baseline[field],
+            "current": current_metadata[field],
+            "match": baseline[field] == current_metadata[field],
+        })
+    comparison_valid = all(item["match"] for item in identity_checks)
+
+    failure_gates = [
+        {
+            "gate": "agent_failed_rate",
+            "baseline": baseline["agent_failed_rate"],
+            "current": current_agent_failed_rate,
+            "rule": "current > 0 => regression",
+            "regression": current_agent_failed_rate > 0,
+        },
+        {
+            "gate": "judge_failed_rate",
+            "baseline": baseline["judge_failed_rate"],
+            "current": current_judge_failed_rate,
+            "rule": "current > 0 => regression",
+            "regression": current_judge_failed_rate > 0,
+        },
+    ]
+
+    metric_comparisons = []
+    metric_regressions = []
+    for metric_name in _MONITORED_METRICS:
+        baseline_value = baseline[metric_name]
+        current_value = (
+            current_overall_mean
+            if metric_name == "machine_overall_mean"
+            else current_pass_rate
+        )
+        baseline_decimal = Decimal(str(baseline_value))
+        current_decimal = Decimal(str(current_value))
+        if baseline_decimal == 0:
+            raise RegressionInputError(
+                f"baseline {metric_name} is zero; relative comparison is undefined"
+            )
+        relative_delta_decimal = (
+            current_decimal - baseline_decimal
+        ) / baseline_decimal
+        regression = relative_delta_decimal < Decimal("-0.05")
+        relative_delta = float(relative_delta_decimal)
+        metric_comparisons.append({
+            "metric": metric_name,
+            "baseline": baseline_value,
+            "current": current_value,
+            "relative_delta": relative_delta,
+            "threshold": REGRESSION_THRESHOLD,
+            "regression": regression,
+        })
+        if regression:
+            metric_regressions.append(
+                f"{metric_name}: relative_delta={relative_delta} < -0.05"
+            )
+
+    gate_regressions = [
+        f"{gate['gate']}: hard gate current={gate['current']} > 0"
+        for gate in failure_gates
+        if gate["regression"]
+    ]
+
+    if comparison_valid:
+        regressions = metric_regressions + gate_regressions
+    else:
+        regressions = []
+
+    return {
+        "schema_version": REPORT_SCHEMA_VERSION,
+        "baseline_path": str(baseline_path),
+        "baseline_sha256": _sha256_file(baseline_path),
+        "current_execution_revision": current_git_revision,
+        "current_predictions_sha256": _sha256_file(predictions_path),
+        "current_metrics_sha256": _sha256_file(metrics_path),
+        "comparison_valid": comparison_valid,
+        "identity_checks": identity_checks,
+        "metric_comparisons": metric_comparisons,
+        "failure_gates": failure_gates,
+        "regressions": regressions,
+        "regression_detected": bool(regressions),
+        "adjudicated_pass_rate_report_only": baseline["adjudicated_pass_rate"],
+    }
 
 
 def main(argv: Sequence[str] | None = None) -> int:

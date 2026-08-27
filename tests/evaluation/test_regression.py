@@ -6,7 +6,9 @@ read or write the real formal evaluation directories and never touch
 """
 
 import hashlib
+import inspect
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -123,7 +125,7 @@ def _write_fake_artifacts(
         git_revision=git_revision,
     )
     _write_fake_predictions(predictions_path, total_cases=35, passed_cases=24)
-    _write_fake_adjudication(adjudication_path)
+    _write_fake_adjudication(adjudication_path, machine_pass_rate=pass_rate)
     return {
         "metrics": metrics_path,
         "metadata": metadata_path,
@@ -252,3 +254,300 @@ def test_create_baseline_fails_when_output_exists_and_preserves_file(tmp_path):
             created_at="2026-08-27T00:00:00Z",
         )
     assert output.read_bytes() == original
+
+
+def _write_compare_inputs(
+    tmp_path,
+    *,
+    baseline_overall_mean=0.9232142857142858,
+    baseline_pass_rate=0.6857142857142857,
+    current_overall_mean=0.9232142857142858,
+    current_pass_rate=0.6857142857142857,
+    current_agent_failed_rate=0.0,
+    current_judge_failed_rate=0.0,
+    baseline_dataset_sha256=DEFAULT_DATASET_SHA256,
+    baseline_judge_model=DEFAULT_JUDGE_MODEL,
+    baseline_prompt_version=DEFAULT_PROMPT_VERSION,
+    baseline_pass_rule_version=DEFAULT_PASS_RULE_VERSION,
+    baseline_git_revision=DEFAULT_GIT_REVISION,
+    current_dataset_sha256=DEFAULT_DATASET_SHA256,
+    current_judge_model=DEFAULT_JUDGE_MODEL,
+    current_prompt_version=DEFAULT_PROMPT_VERSION,
+    current_pass_rule_version=DEFAULT_PASS_RULE_VERSION,
+    current_git_revision=DEFAULT_GIT_REVISION,
+):
+    (tmp_path / "baseline-src").mkdir()
+    (tmp_path / "current-src").mkdir()
+    baseline_inputs = _write_fake_artifacts(
+        tmp_path / "baseline-src",
+        overall_mean=baseline_overall_mean,
+        pass_rate=baseline_pass_rate,
+        dataset_sha256=baseline_dataset_sha256,
+        judge_model=baseline_judge_model,
+        prompt_version=baseline_prompt_version,
+        pass_rule_version=baseline_pass_rule_version,
+        git_revision=baseline_git_revision,
+    )
+    current_inputs = _write_fake_artifacts(
+        tmp_path / "current-src",
+        overall_mean=current_overall_mean,
+        pass_rate=current_pass_rate,
+        agent_failed_rate=current_agent_failed_rate,
+        judge_failed_rate=current_judge_failed_rate,
+        dataset_sha256=current_dataset_sha256,
+        judge_model=current_judge_model,
+        prompt_version=current_prompt_version,
+        pass_rule_version=current_pass_rule_version,
+        git_revision=current_git_revision,
+    )
+    baseline_path = tmp_path / "baseline.json"
+    regression.write_json_new(
+        baseline_path,
+        regression.build_baseline(
+            metrics_path=baseline_inputs["metrics"],
+            metadata_path=baseline_inputs["metadata"],
+            predictions_path=baseline_inputs["predictions"],
+            adjudication_path=baseline_inputs["adjudication"],
+            created_at="2026-08-27T00:00:00Z",
+        ),
+    )
+    return {
+        "baseline": baseline_path,
+        "metrics": current_inputs["metrics"],
+        "metadata": current_inputs["metadata"],
+        "predictions": current_inputs["predictions"],
+    }
+
+
+def _compare_with(inputs):
+    return regression.compare_against_baseline(
+        baseline_path=inputs["baseline"],
+        metrics_path=inputs["metrics"],
+        metadata_path=inputs["metadata"],
+        predictions_path=inputs["predictions"],
+    )
+
+
+def test_overall_mean_drop_over_5_percent_is_regression(tmp_path):
+    inputs = _write_compare_inputs(
+        tmp_path, baseline_overall_mean=1.0, current_overall_mean=0.94
+    )
+    report = _compare_with(inputs)
+    comparison = next(
+        item
+        for item in report["metric_comparisons"]
+        if item["metric"] == "machine_overall_mean"
+    )
+    assert comparison["regression"] is True
+    assert report["regression_detected"] is True
+    assert any("machine_overall_mean" in entry for entry in report["regressions"])
+
+
+def test_pass_rate_drop_over_5_percent_is_regression(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, baseline_pass_rate=0.8, current_pass_rate=0.75)
+    report = _compare_with(inputs)
+    comparison = next(
+        item
+        for item in report["metric_comparisons"]
+        if item["metric"] == "machine_pass_rate"
+    )
+    assert comparison["regression"] is True
+    assert report["regression_detected"] is True
+    assert any("machine_pass_rate" in entry for entry in report["regressions"])
+
+
+@pytest.mark.parametrize(
+    ("current", "delta_relation", "expected_regression"),
+    [
+        (0.95, "equal", False),
+        (0.949999, "below", True),
+        (0.950001, "above", False),
+    ],
+)
+def test_threshold_boundary_uses_decimal_exact_judgment(
+    tmp_path, current, delta_relation, expected_regression
+):
+    inputs = _write_compare_inputs(
+        tmp_path, baseline_overall_mean=1.0, current_overall_mean=current
+    )
+    report = _compare_with(inputs)
+    comparison = next(
+        item
+        for item in report["metric_comparisons"]
+        if item["metric"] == "machine_overall_mean"
+    )
+    delta = Decimal(str(comparison["relative_delta"]))
+    threshold = Decimal("-0.05")
+    if delta_relation == "equal":
+        assert delta == threshold
+    elif delta_relation == "below":
+        assert delta < threshold
+    else:
+        assert delta > threshold
+    assert comparison["regression"] is expected_regression
+
+
+def test_current_agent_failure_rate_positive_is_regression(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_agent_failed_rate=0.02)
+    report = _compare_with(inputs)
+    gate = next(
+        item for item in report["failure_gates"] if item["gate"] == "agent_failed_rate"
+    )
+    assert gate["regression"] is True
+    assert report["regression_detected"] is True
+    assert any("agent_failed_rate" in entry for entry in report["regressions"])
+
+
+def test_current_judge_failure_rate_positive_is_regression(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_judge_failed_rate=0.02)
+    report = _compare_with(inputs)
+    gate = next(
+        item for item in report["failure_gates"] if item["gate"] == "judge_failed_rate"
+    )
+    assert gate["regression"] is True
+    assert report["regression_detected"] is True
+    assert any("judge_failed_rate" in entry for entry in report["regressions"])
+
+
+def test_dataset_sha_mismatch_fails_closed_with_invalid_report(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_dataset_sha256="f" * 64)
+    report = _compare_with(inputs)
+    assert report["comparison_valid"] is False
+    assert report["regressions"] == []
+    assert report["regression_detected"] is False
+    checks = {item["field"]: item for item in report["identity_checks"]}
+    assert checks["dataset_sha256"]["match"] is False
+    assert checks["dataset_sha256"]["baseline"] == DEFAULT_DATASET_SHA256
+    assert checks["dataset_sha256"]["current"] == "f" * 64
+
+
+def test_judge_model_mismatch_fails_closed(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_judge_model="different-judge-model")
+    report = _compare_with(inputs)
+    assert report["comparison_valid"] is False
+    checks = {item["field"]: item for item in report["identity_checks"]}
+    assert checks["judge_model"]["match"] is False
+
+
+def test_prompt_version_mismatch_fails_closed(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_prompt_version="different-prompt")
+    report = _compare_with(inputs)
+    assert report["comparison_valid"] is False
+    checks = {item["field"]: item for item in report["identity_checks"]}
+    assert checks["prompt_version"]["match"] is False
+
+
+def test_pass_rule_version_mismatch_fails_closed(tmp_path):
+    inputs = _write_compare_inputs(tmp_path, current_pass_rule_version="different-rule")
+    report = _compare_with(inputs)
+    assert report["comparison_valid"] is False
+    checks = {item["field"]: item for item in report["identity_checks"]}
+    assert checks["pass_rule_version"]["match"] is False
+
+
+def test_execution_revision_and_artifact_hashes_may_differ(tmp_path):
+    inputs = _write_compare_inputs(
+        tmp_path,
+        baseline_git_revision=DEFAULT_GIT_REVISION,
+        current_git_revision="9999999999999999999999999999999999999999",
+    )
+    with inputs["predictions"].open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write('{"case_id": "extra", "case_pass": false}\n')
+    metrics_payload = json.loads(inputs["metrics"].read_text(encoding="utf-8"))
+    metrics_payload["note"] = "different content"
+    inputs["metrics"].write_text(
+        json.dumps(metrics_payload, ensure_ascii=False), encoding="utf-8", newline="\n"
+    )
+    report = _compare_with(inputs)
+    assert report["comparison_valid"] is True
+    assert all(item["match"] for item in report["identity_checks"])
+    assert report["current_execution_revision"] == "9999999999999999999999999999999999999999"
+    baseline_payload = json.loads(inputs["baseline"].read_text(encoding="utf-8"))
+    assert report["current_predictions_sha256"] != baseline_payload["predictions_sha256"]
+    assert report["current_metrics_sha256"] != baseline_payload["metrics_sha256"]
+
+
+def test_adjudicated_pass_rate_not_in_automatic_regression(tmp_path):
+    inputs = _write_compare_inputs(tmp_path)
+    report = _compare_with(inputs)
+    baseline_payload = json.loads(inputs["baseline"].read_text(encoding="utf-8"))
+    assert (
+        report["adjudicated_pass_rate_report_only"]
+        == baseline_payload["adjudicated_pass_rate"]
+    )
+    assert all(
+        item["metric"] != "adjudicated_pass_rate" for item in report["metric_comparisons"]
+    )
+    assert all("adjudicated" not in entry for entry in report["regressions"])
+    assert all(
+        item["gate"] != "adjudicated_pass_rate" for item in report["failure_gates"]
+    )
+    assert "adjudication" not in inspect.signature(
+        regression.compare_against_baseline
+    ).parameters
+
+
+def test_compare_does_not_modify_baseline(tmp_path):
+    inputs = _write_compare_inputs(
+        tmp_path, baseline_overall_mean=1.0, current_overall_mean=0.5
+    )
+    before = _sha256_of(inputs["baseline"])
+    report = _compare_with(inputs)
+    after = _sha256_of(inputs["baseline"])
+    assert before == after
+    assert report["comparison_valid"] is True
+
+
+def test_metric_comparison_records_baseline_current_delta_threshold_regression(tmp_path):
+    inputs = _write_compare_inputs(
+        tmp_path, baseline_overall_mean=1.0, current_overall_mean=0.94
+    )
+    report = _compare_with(inputs)
+    comparison = next(
+        item
+        for item in report["metric_comparisons"]
+        if item["metric"] == "machine_overall_mean"
+    )
+    assert set(comparison) == {
+        "metric",
+        "baseline",
+        "current",
+        "relative_delta",
+        "threshold",
+        "regression",
+    }
+    assert comparison["baseline"] == 1.0
+    assert comparison["current"] == 0.94
+    assert comparison["relative_delta"] == pytest.approx(-0.06)
+    assert comparison["threshold"] == -0.05
+    assert comparison["regression"] is True
+
+
+def test_report_contains_all_required_top_level_fields(tmp_path):
+    inputs = _write_compare_inputs(tmp_path)
+    report = _compare_with(inputs)
+    assert set(report) == {
+        "schema_version",
+        "baseline_path",
+        "baseline_sha256",
+        "current_execution_revision",
+        "current_predictions_sha256",
+        "current_metrics_sha256",
+        "comparison_valid",
+        "identity_checks",
+        "metric_comparisons",
+        "failure_gates",
+        "regressions",
+        "regression_detected",
+        "adjudicated_pass_rate_report_only",
+    }
+    assert report["schema_version"] == "dialog_regression_report_v1"
+
+
+def test_no_intent_fields_in_baseline_or_report(tmp_path):
+    inputs = _write_compare_inputs(tmp_path)
+    report = _compare_with(inputs)
+    baseline_payload = json.loads(inputs["baseline"].read_text(encoding="utf-8"))
+    for name in ("intent_accuracy", "intent_macro_f1"):
+        assert name not in baseline_payload
+        assert name not in report
