@@ -33,17 +33,13 @@ NexusOps = Intent Recognition + RAG + Memory + Multi-Agent Routing + Skills + Mo
 
 ```text
 业务请求
-  -> 意图识别
-  -> 实体提取
   -> 记忆读取
+  -> 意图识别与实体提取
   -> 按意图触发 RAG
   -> 多 Agent 路由
   -> 动态规则注入
   -> 专业 Agent 回复
   -> 记忆写入
-  -> 运行监控
-  -> 自动评测
-  -> 持续优化
 ```
 
 因此，它更像一个企业运营场景下的 Agent 协同系统，而不是单个客服机器人。
@@ -93,32 +89,15 @@ NexusOps 可以统一处理企业运营中的多类请求：
 
 | 场景 | 用户示例 | 系统处理方式 |
 |---|---|---|
-| 订单履约 | 我的订单什么时候到？物流多久更新？ | 识别 `logistics/order_status`，检索配送规则，由运营协调 Agent 处理 |
-| 技术故障 | 登录一直 401，页面总是 500 | 识别 `technical_login/technical_crash`，路由到技术可靠性 Agent |
-| 账务异常 | 我被重复扣款了，退款什么时候到账？ | 识别 `payment_issue/refund`，路由到收入与合规 Agent |
-| 发票处理 | 帮我开发票，抬头需要修改 | 识别 `invoice`，路由到收入与合规 Agent |
-| 复合问题 | 登录报错，而且刚才还重复扣款了 | 生成主 Agent + 辅助 Agent，协同处理技术和账务线索 |
+| 订单履约 | 我的订单什么时候到？物流多久更新？ | 识别 `logistics/order_status`，检索配送规则，由 `GeneralAgent` 处理 |
+| 技术故障 | 登录一直 401，页面总是 500 | 识别 `technical_login/technical_crash`，路由到 `TechnicalAgent` |
+| 账务异常 | 我被重复扣款了，退款什么时候到账？ | 识别 `payment_issue/refund`，路由到 `BillingAgent` |
+| 发票处理 | 帮我开发票，抬头需要修改 | 识别 `invoice`，路由到 `BillingAgent` |
+| 复合问题 | 同一请求同时包含技术和账务线索 | 辅助领域分数达到阈值时生成主 Agent + 辅助 Agent |
 | 升级诉求 | 我要投诉，帮我转人工 | 识别 `human_handoff/escalation`，触发升级标记 |
 | 政策咨询 | 会员权益怎么用？退款规则是什么？ | 按意图检索知识库，结合动态 Skills 生成规范回复 |
 
-## 5. Agent 角色包装
-
-代码中的 Agent 可以对外包装成更贴近企业运营的角色名：
-
-| 代码中的 Agent | 对外角色名 | 职责说明 |
-|---|---|---|
-| `GeneralAgent` | 运营协调 Agent | 处理通用咨询、订单物流、会员权益、信息澄清和跨域协调 |
-| `TechnicalAgent` | 技术可靠性 Agent | 处理登录失败、错误码、崩溃、系统异常和排障建议 |
-| `BillingAgent` | 收入与合规 Agent | 处理退款、发票、支付异常、订阅、账务核验和合规边界 |
-| `ESCALATION` | 运营升级通道 | 标记高优先级问题，预留工单、人工队列或投诉流程接入 |
-
-对外表达时，可以把项目描述为：
-
-```text
-一个面向企业运营场景的多角色 Agent 协同系统。
-```
-
-## 6. 核心处理链路
+## 5. 核心处理链路
 
 ```text
 业务请求
@@ -143,7 +122,7 @@ NexusOps 可以统一处理企业运营中的多类请求：
 
 这条链路体现的是完整的 Agent Runtime，而不是简单的 Prompt Demo。
 
-## 7. 技术能力与业务价值
+## 6. 技术能力与业务价值
 
 | 技术能力 | 业务价值 |
 |---|---|
@@ -156,11 +135,11 @@ NexusOps 可以统一处理企业运营中的多类请求：
 | 动态 Skills | 运营规则、排障 SOP、账务边界可热加载，不必改代码 |
 | Redis 工作记忆 | 当前会话保持连续性，支持多轮补充信息 |
 | ChromaDB 长期记忆 | 支持历史摘要、用户画像和知识库语义检索 |
-| MCP 工具治理 | 工具调用具备缓存、超时、熔断和降级能力 |
+| 本进程工具治理 | 工具调用具备缓存、超时、熔断和降级能力 |
 | Monitor 路由降权 | 表现差的 Agent 会被动态降低路由分数 |
 | LLM-as-Judge 评测 | 对 Agent 回复质量做自动化评估和回归检测 |
 
-## 8. 分层能力架构
+## 7. 分层能力架构
 
 ```text
 接入层
@@ -184,7 +163,7 @@ NexusOps 可以统一处理企业运营中的多类请求：
   GeneralAgent
   TechnicalAgent
   BillingAgent
-  MCP 工具链
+  本进程工具链
   Skills 动态规则注入
 
 治理层
@@ -194,59 +173,7 @@ NexusOps 可以统一处理企业运营中的多类请求：
   回归检测与优化建议
 ```
 
-## 9. 多 Agent 协同示例
-
-用户输入：
-
-```text
-登录一直 401，而且刚才还重复扣款了
-```
-
-系统识别：
-
-```text
-intent = technical_login
-intent_group = technical
-entities.error_code = ["401"]
-```
-
-领域打分：
-
-```text
-technical = 高
-billing = 中高
-general = 低
-```
-
-路由决策：
-
-```json
-{
-  "primary_agent": "technical",
-  "supporting_agents": ["billing"],
-  "agent_types": ["technical", "billing"],
-  "routing_reason": "用户主要诉求是登录 401，同时包含重复扣款线索",
-  "routing_confidence": 0.86
-}
-```
-
-回复形态：
-
-```text
-[technical - 主处理]
-解释 401 登录失败的可能原因，给出账号状态、凭证有效期、网络环境、版本信息等排查步骤。
-
-[billing - 辅助处理]
-补充重复扣款核验建议，提醒保留支付流水，并说明退款或账务核验需要进入人工审核流程。
-```
-
-这个例子可以突出三点：
-
-- 系统没有把复合问题粗暴归为单一类别
-- 主 Agent 和辅助 Agent 的职责边界清晰
-- 路由结果可解释，便于调试和评测
-
-## 10. 与普通方案的差异
+## 8. 与普通方案的差异
 
 | 对比项 | 普通客服 Bot | NexusOps |
 |---|---|---|
@@ -259,7 +186,7 @@ general = 低
 | 质量优化 | 靠人工试用 | Monitor 指标 + LLM-as-Judge 评测 |
 | 可解释性 | 很难知道为什么这么答 | 返回路由原因、置信度和运行指标 |
 
-## 11. 可展示的项目亮点
+## 9. 可展示的项目亮点
 
 ### 1. Multi-Agent Harness，而不是单 Agent
 
@@ -296,7 +223,7 @@ general = 低
 - 使用 LLM-as-Judge 评价回复质量
 - 输出回归风险和优化建议
 
-## 12. 简历与面试表达
+## 10. 简历与面试表达
 
 ### 项目标题
 
@@ -339,7 +266,7 @@ NexusOps: Multi-Agent Customer Support Harness
 所以这个项目的重点不是“调用大模型回答问题”，而是围绕复杂客服/运营场景实现了理解、检索、记忆、路由、执行、监控和评测的一整套工程闭环。
 ```
 
-## 13. 对外展示建议
+## 11. 对外展示建议
 
 ### 更适合强调的关键词
 
@@ -362,10 +289,10 @@ NexusOps: Multi-Agent Customer Support Harness
 更稳妥的说法是：
 
 ```text
-NexusOps 面向企业运营高频问题提供智能分流、知识增强回复和多 Agent 协同处理能力，并为复杂、高风险或低置信度请求预留人工升级通道。
+NexusOps 面向企业运营高频问题提供智能分流、知识增强回复和多 Agent 协同处理能力；当前升级仅是状态标记和 General 回落。
 ```
 
-## 14. 最终推荐标题与副标题
+## 12. 最终推荐标题与副标题
 
 标题：
 

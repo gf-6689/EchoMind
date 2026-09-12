@@ -131,7 +131,7 @@
     <circle class="green" cx="30" cy="30" r="18"/>
     <path d="M21 30 L28 38 L41 21" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <text class="label green-text" x="64" y="24">会话优先读 Redis</text>
-    <text class="muted" x="64" y="52">保证多轮对话响应速度，过期后通过摘要回补长期记忆</text>
+    <text class="muted" x="64" y="52">工作记忆使用 24h TTL，达到阈值时生成摘要</text>
   </g>
   <g transform="translate(600,878)">
     <circle class="blue" cx="30" cy="30" r="18"/>

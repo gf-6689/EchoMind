@@ -127,7 +127,7 @@
     <text class="label green-text" x="138" y="52">通用客服 Agent</text>
     <text class="muted" x="138" y="80">GeneralAgent</text>
     <text class="small" x="138" y="112">接待、澄清、订单、售后</text>
-    <text class="small" x="138" y="140">必要时转人工或分流</text>
+    <text class="small" x="138" y="140">必要时返回升级标记</text>
   </g>
 
   <g transform="translate(590,540)">

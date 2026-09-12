@@ -196,7 +196,7 @@
     <path d="M88 100 L107 130 L126 100" stroke="#fff" stroke-width="5" fill="none"/>
     <text class="small" x="36" y="205">通用 / 技术 / 账单</text>
     <text class="small" x="36" y="235">意图路由与降级</text>
-    <text class="small" x="36" y="265">复合问题并行协作</text>
+    <text class="small" x="36" y="265">达到阈值时主辅并行</text>
   </g>
   <polygon class="arrow" points="1112,785 1085,757 1085,775 1060,775 1060,795 1085,795 1085,813"/>
 

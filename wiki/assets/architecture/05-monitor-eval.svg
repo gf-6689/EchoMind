@@ -61,7 +61,7 @@
   <!-- Header -->
   <rect class="header shadow" x="32" y="28" width="1536" height="112" rx="18"/>
   <text class="title" x="66" y="78">监控与评测闭环</text>
-  <text class="subtitle" x="66" y="110">在线监控影响后续路由，端到端评测发现回复质量退化并输出优化建议</text>
+  <text class="subtitle" x="66" y="110">在线监控影响后续路由，离线回复评测检测回归并输出优化建议</text>
   <g transform="translate(1278,58)">
     <rect class="soft-card" width="240" height="48" rx="12"/>
     <circle class="green" cx="28" cy="24" r="14"/>
@@ -129,7 +129,7 @@
   <!-- Evaluation -->
   <rect class="blue-panel shadow" x="32" y="570" width="1536" height="394" rx="18"/>
   <rect class="blue-band" x="62" y="598" width="1476" height="66" rx="14"/>
-  <text class="blue-title" x="92" y="640">端到端评测链路：真实调用生成回复，再由 LLM-as-Judge 评分和定位回归</text>
+  <text class="blue-title" x="92" y="640">离线回复评测链路：调用 Orchestrator 生成回复，再由 LLM-as-Judge 评分</text>
 
   <g transform="translate(92,712)">
     <rect class="card blue-card" width="240" height="116" rx="12"/>

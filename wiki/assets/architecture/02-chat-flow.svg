@@ -90,21 +90,21 @@
     <rect class="card orange-card" width="300" height="132" rx="12"/>
     <circle class="orange" cx="44" cy="40" r="20"/>
     <text class="tiny" x="39" y="45">3</text>
-    <text class="label orange-text" x="82" y="48">RAG 知识库检索</text>
+    <text class="label orange-text" x="82" y="48">意图识别</text>
     <path d="M80 78 h70 v46 h-70z" fill="#ffffff" stroke="#f47d22" stroke-width="5"/>
     <path d="M160 86 h72 M160 104 h62 M160 122 h50" stroke="#f47d22" stroke-width="5" stroke-linecap="round"/>
-    <text class="muted" x="80" y="152">查询改写 / 召回 / 重排</text>
+    <text class="muted" x="80" y="152">LLM / BGE / Pattern</text>
   </g>
 
   <g transform="translate(1212,320)">
     <rect class="card purple-card" width="280" height="132" rx="12"/>
     <circle class="purple" cx="44" cy="40" r="20"/>
     <text class="tiny" x="39" y="45">4</text>
-    <text class="label purple-text" x="82" y="48">意图识别</text>
+    <text class="label purple-text" x="82" y="48">RAG 知识库检索</text>
     <circle cx="118" cy="100" r="31" fill="#ffffff" stroke="#6045a9" stroke-width="5"/>
     <path d="M92 100 h52 M118 74 v52 M98 80 c13 13 26 26 39 39 M138 80 c-13 13 -26 26 -39 39" stroke="#6045a9" stroke-width="3" fill="none"/>
-    <text class="muted" x="168" y="99">LLM</text>
-    <text class="muted" x="168" y="121">语义 + 规则</text>
+    <text class="muted" x="168" y="99">按意图门控</text>
+    <text class="muted" x="168" y="121">改写 / 召回 / 重排</text>
   </g>
 
   <path class="line" d="M372 386 L452 386"/>
